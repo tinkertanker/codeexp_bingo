@@ -32,3 +32,6 @@ dist-ssr
 
 # Supabase
 supabase/.temp
+
+# Convex (auto-generated; commit once stable, but ignore until first `npx convex dev`)
+convex/_generated/
