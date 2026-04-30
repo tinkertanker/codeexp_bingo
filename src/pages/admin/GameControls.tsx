@@ -54,35 +54,35 @@ function Controls({ mentorName }: { mentorName: string }) {
     load()
   }
 
-  if (loading) return <p className="text-sm text-slate-500">Loading…</p>
+  if (loading) return <p className="text-sm text-bh-dim bh-display">Loading…</p>
 
   return (
     <div className="space-y-6">
-      <section className="bg-white rounded-lg ring-1 ring-slate-200 p-4">
-        <h2 className="text-xl font-semibold mb-2">Game state</h2>
-        <p className="text-sm text-slate-600 mb-3">
+      <section className="bh-card p-4">
+        <h2 className="bh-display text-xl font-bold mb-2 text-white">Game state</h2>
+        <p className="text-sm text-bh-dim mb-3">
           When the game is closed, teams' bingo cards are read-only. They can still see the scoreboard.
         </p>
-        <div className="flex items-center gap-3">
-          <span className={['px-2 py-1 rounded text-xs font-semibold', state?.is_open ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'].join(' ')}>
-            {state?.is_open ? 'OPEN' : 'CLOSED'}
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className={['bh-display px-2.5 py-1 rounded text-xs font-bold tracking-widest ring-1', state?.is_open ? 'bg-bh-lime text-black ring-bh-lime shadow-neon-lime' : 'bg-bh-panel text-bh-dim ring-bh-line'].join(' ')}>
+            {state?.is_open ? '● OPEN' : 'CLOSED'}
           </span>
           <button
             onClick={toggle}
             disabled={busy || !isOrg}
-            className="px-3 py-2 rounded-lg bg-slate-800 text-white text-sm disabled:opacity-50"
+            className="bh-btn-ghost text-xs disabled:opacity-50"
           >
             {state?.is_open ? 'Close game' : 'Open game'}
           </button>
           {!isOrg && (
-            <span className="text-xs text-slate-500">Only organisers can flip this.</span>
+            <span className="text-xs text-bh-dim">Only organisers can flip this.</span>
           )}
         </div>
-        {error && <p className="text-sm text-rose-600 mt-2">{error}</p>}
+        {error && <p className="text-sm text-bh-magenta mt-2">{error}</p>}
       </section>
 
-      <section className="bg-white rounded-lg ring-1 ring-slate-200 p-4">
-        <h2 className="text-xl font-semibold mb-2">Live stats</h2>
+      <section className="bh-card p-4">
+        <h2 className="bh-display text-xl font-bold mb-2 text-white">Live stats</h2>
         <div className="grid grid-cols-3 gap-3 text-center">
           <Stat label="Teams" value={stats.teams} />
           <Stat label="Approved completions" value={stats.completions} />
@@ -95,9 +95,9 @@ function Controls({ mentorName }: { mentorName: string }) {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg bg-slate-50 p-3">
-      <div className="text-2xl font-bold">{value}</div>
-      <div className="text-xs text-slate-500">{label}</div>
+    <div className="rounded-md bg-bh-surface ring-1 ring-bh-line p-3">
+      <div className="bh-display text-3xl font-extrabold text-bh-lime">{value}</div>
+      <div className="text-xs text-bh-dim mt-1">{label}</div>
     </div>
   )
 }

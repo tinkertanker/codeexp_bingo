@@ -40,12 +40,12 @@ export default function PhotoCapture({ onChange }: PhotoCaptureProps) {
       />
       {previewUrl ? (
         <div className="space-y-2">
-          <img src={previewUrl} alt="preview" className="w-full rounded-lg shadow" />
-          <div className="text-xs text-slate-500 truncate">{fileName}</div>
+          <img src={previewUrl} alt="preview" className="w-full rounded-md ring-1 ring-bh-line" />
+          <div className="text-xs text-bh-dim truncate font-mono">{fileName}</div>
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="w-full py-2 rounded-lg bg-white text-slate-700 ring-1 ring-slate-300 text-sm"
+            className="w-full py-2 rounded-md bg-bh-panel text-bh-dim ring-1 ring-bh-line hover:text-white text-sm"
           >
             Choose a different photo
           </button>
@@ -54,7 +54,7 @@ export default function PhotoCapture({ onChange }: PhotoCaptureProps) {
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="w-full py-3 rounded-lg bg-slate-800 text-white font-semibold"
+          className="bh-btn-primary w-full"
         >
           Take or choose a photo
         </button>

@@ -75,47 +75,47 @@ function Queue({ mentorName }: { mentorName: string }) {
 
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-4">Pending approvals</h2>
-      {loading && <p className="text-sm text-slate-500">Loading…</p>}
-      {error && <p className="text-sm text-rose-600 mb-2">{error}</p>}
+      <h2 className="bh-display text-xl font-bold mb-4 text-white">Pending approvals</h2>
+      {loading && <p className="text-sm text-bh-dim bh-display">Loading…</p>}
+      {error && <p className="text-sm text-bh-magenta mb-2">{error}</p>}
       {!loading && items.length === 0 && (
-        <p className="text-sm text-slate-500">Nothing pending. Nice work.</p>
+        <p className="text-sm text-bh-dim">Nothing pending. Nice work.</p>
       )}
       <ul className="space-y-3">
         {items.map((item) => (
-          <li key={item.id} className="bg-white rounded-lg shadow-sm ring-1 ring-slate-200 p-4">
+          <li key={item.id} className="bh-card p-4">
             <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold">{item.team.name} <span className="text-xs text-slate-400">· {item.team.colour}</span></div>
-                <div className="text-xs text-slate-500 mb-2">{item.square.title} <span className="text-slate-400">· {item.square.verification_kind}</span></div>
+                <div className="bh-display text-sm font-bold text-white">{item.team.name} <span className="text-xs text-bh-dim font-normal">· {item.team.colour}</span></div>
+                <div className="text-xs text-bh-dim mb-2">{item.square.title} <span className="text-bh-dim/70">· {item.square.verification_kind}</span></div>
                 {item.photo_path && (
                   <a href={publicPhotoUrl(item.photo_path)} target="_blank" rel="noopener noreferrer">
                     <img
                       src={publicPhotoUrl(item.photo_path)}
                       alt="evidence"
-                      className="rounded-lg max-h-64 ring-1 ring-slate-200"
+                      className="rounded max-h-64 ring-1 ring-bh-line"
                     />
                   </a>
                 )}
                 {item.ig_url && (
-                  <a href={item.ig_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-sm break-all">
+                  <a href={item.ig_url} target="_blank" rel="noopener noreferrer" className="text-bh-cyan underline text-sm break-all">
                     {item.ig_url}
                   </a>
                 )}
-                {item.text_answer && <div className="text-sm text-slate-700 mt-1">"{item.text_answer}"</div>}
+                {item.text_answer && <div className="text-sm text-white/80 mt-1 italic">"{item.text_answer}"</div>}
               </div>
               <div className="flex flex-col gap-2 shrink-0">
                 <button
                   onClick={() => onApprove(item)}
                   disabled={busyId === item.id}
-                  className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold disabled:opacity-50"
+                  className="bh-btn-primary text-xs px-3 py-2 disabled:opacity-50"
                 >
                   Approve
                 </button>
                 <button
                   onClick={() => onReject(item)}
                   disabled={busyId === item.id}
-                  className="px-3 py-2 rounded-lg bg-white text-rose-700 ring-1 ring-rose-200 text-sm disabled:opacity-50"
+                  className="bh-display px-3 py-2 rounded-md bg-bh-panel text-bh-magenta ring-1 ring-bh-magenta/40 text-xs tracking-wider hover:bg-bh-magenta/10 disabled:opacity-50"
                 >
                   Reject
                 </button>

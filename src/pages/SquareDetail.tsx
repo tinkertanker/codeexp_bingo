@@ -20,11 +20,11 @@ export default function SquareDetail() {
   const { status, data, refresh } = useTeam(token)
   const navigate = useNavigate()
 
-  if (status === 'loading') return <div className="p-6 text-slate-500">Loading…</div>
-  if (status !== 'ok' || !data) return <div className="p-6 text-rose-600">Team not found.</div>
+  if (status === 'loading') return <div className="p-6 text-bh-dim bh-display text-xs">Loading…</div>
+  if (status !== 'ok' || !data) return <div className="p-6 text-bh-magenta">Team not found.</div>
 
   const square = data.squares.find((s) => s.position === Number(position))
-  if (!square) return <div className="p-6 text-rose-600">Square not found.</div>
+  if (!square) return <div className="p-6 text-bh-magenta">Square not found.</div>
 
   const existing = data.completions.find((c) => c.square_id === square.id)
   const completed = existing?.status === 'approved'
@@ -39,25 +39,25 @@ export default function SquareDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4">
+    <div className="min-h-screen p-4">
       <div className="max-w-md mx-auto">
-        <Link to={`/t/${data.team.token}`} className="text-sm text-slate-500 hover:text-slate-800">
+        <Link to={`/t/${data.team.token}`} className="bh-display text-xs tracking-wider text-bh-dim hover:text-bh-lime">
           ← Back
         </Link>
-        <h1 className="mt-2 text-xl font-bold">{square.title}</h1>
-        <p className="text-sm text-slate-600 mb-4">{square.description}</p>
+        <h1 className="mt-2 bh-display text-xl font-bold text-white">{square.title}</h1>
+        <p className="text-sm text-bh-dim mb-4">{square.description}</p>
 
         {completed && (
-          <div className="p-3 rounded-lg bg-emerald-50 text-emerald-800 text-sm mb-4">Already completed. ✓</div>
+          <div className="p-3 rounded-md ring-1 ring-bh-lime/40 bg-bh-lime/10 text-bh-lime text-sm mb-4 bh-display tracking-wider">Already completed ✓</div>
         )}
         {pending && (
-          <div className="p-3 rounded-lg bg-amber-50 text-amber-800 text-sm mb-4">
+          <div className="p-3 rounded-md ring-1 ring-bh-yellow/40 bg-bh-yellow/10 text-bh-yellow text-sm mb-4">
             Waiting for a mentor to approve. You can resubmit if you'd like to replace your evidence.
           </div>
         )}
 
         {!data.gameOpen && !completed && (
-          <div className="p-3 rounded-lg bg-amber-100 text-amber-900 text-sm mb-4">
+          <div className="p-3 rounded-md ring-1 ring-bh-yellow/40 bg-bh-yellow/10 text-bh-yellow text-sm mb-4">
             The bingo is paused — submissions are locked. Try again once the game reopens.
           </div>
         )}
@@ -133,13 +133,13 @@ function ScanTeamFlow({ team, square, onSubmit }: VerifProps) {
     return (
       <div className="space-y-3">
         <ScannedTeamCard scannedTeam={scannedTeam} />
-        <button onClick={submit} disabled={submitting} className="w-full py-3 rounded-lg bg-emerald-600 text-white font-semibold disabled:opacity-50">
+        <button onClick={submit} disabled={submitting} className="bh-btn-primary w-full disabled:opacity-50 disabled:hover:bg-bh-lime disabled:hover:shadow-none">
           {submitting ? 'Submitting…' : 'Confirm completion'}
         </button>
-        <button onClick={() => setScannedTeam(null)} disabled={submitting} className="w-full py-2 rounded-lg bg-white text-slate-700 ring-1 ring-slate-300 text-sm">
+        <button onClick={() => setScannedTeam(null)} disabled={submitting} className="w-full py-2 rounded-md bg-bh-panel text-bh-dim ring-1 ring-bh-line hover:text-white hover:bg-bh-surface text-sm">
           Scan again
         </button>
-        {error && <div className="text-sm text-rose-600">{error}</div>}
+        {error && <div className="text-sm text-bh-magenta">{error}</div>}
       </div>
     )
   }
@@ -147,18 +147,18 @@ function ScanTeamFlow({ team, square, onSubmit }: VerifProps) {
     return (
       <div className="space-y-3">
         <QRScanner onScan={onScan} />
-        <button onClick={() => setScanning(false)} className="w-full py-2 rounded-lg bg-white text-slate-700 ring-1 ring-slate-300 text-sm">Cancel</button>
-        {error && <div className="text-sm text-rose-600">{error}</div>}
+        <button onClick={() => setScanning(false)} className="w-full py-2 rounded-md bg-bh-panel text-bh-dim ring-1 ring-bh-line hover:text-white hover:bg-bh-surface text-sm">Cancel</button>
+        {error && <div className="text-sm text-bh-magenta">{error}</div>}
       </div>
     )
   }
   return (
     <div className="space-y-3">
-      <button onClick={() => setScanning(true)} className="w-full py-3 rounded-lg bg-slate-800 text-white font-semibold">
+      <button onClick={() => setScanning(true)} className="bh-btn-primary w-full">
         Scan another team's QR
       </button>
-      <p className="text-xs text-slate-500">Tip: you can scan your own team's QR if you're claiming yourself.</p>
-      {error && <div className="text-sm text-rose-600">{error}</div>}
+      <p className="text-xs text-bh-dim">Tip: you can scan your own team's QR if you're claiming yourself.</p>
+      {error && <div className="text-sm text-bh-magenta">{error}</div>}
     </div>
   )
 }
@@ -203,23 +203,23 @@ function ScanTeamWithAnswerFlow({ team, square, onSubmit }: VerifProps) {
       <div className="space-y-3">
         <ScannedTeamCard scannedTeam={scannedTeam} />
         <label className="block">
-          <span className="text-sm font-medium text-slate-700">Their answer (short)</span>
+          <span className="bh-display text-[0.65rem] tracking-wider text-bh-dim">Their answer (short)</span>
           <textarea
             value={answer}
             onChange={(e) => setAnswer(e.target.value.slice(0, 280))}
             rows={3}
             placeholder="Type a quick summary of what they said…"
-            className="mt-1 w-full rounded-lg ring-1 ring-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-md ring-1 ring-bh-line bg-black/40 px-3 py-2 text-sm text-white placeholder:text-bh-dim focus:ring-bh-lime focus:outline-none"
           />
-          <span className="text-xs text-slate-400">{answer.length}/280</span>
+          <span className="text-xs text-bh-dim/70">{answer.length}/280</span>
         </label>
-        <button onClick={submit} disabled={submitting} className="w-full py-3 rounded-lg bg-emerald-600 text-white font-semibold disabled:opacity-50">
+        <button onClick={submit} disabled={submitting} className="bh-btn-primary w-full disabled:opacity-50 disabled:hover:bg-bh-lime disabled:hover:shadow-none">
           {submitting ? 'Submitting…' : 'Confirm completion'}
         </button>
-        <button onClick={() => setScannedTeam(null)} disabled={submitting} className="w-full py-2 rounded-lg bg-white text-slate-700 ring-1 ring-slate-300 text-sm">
+        <button onClick={() => setScannedTeam(null)} disabled={submitting} className="w-full py-2 rounded-md bg-bh-panel text-bh-dim ring-1 ring-bh-line hover:text-white hover:bg-bh-surface text-sm">
           Scan again
         </button>
-        {error && <div className="text-sm text-rose-600">{error}</div>}
+        {error && <div className="text-sm text-bh-magenta">{error}</div>}
       </div>
     )
   }
@@ -227,20 +227,20 @@ function ScanTeamWithAnswerFlow({ team, square, onSubmit }: VerifProps) {
     return (
       <div className="space-y-3">
         <QRScanner onScan={onScan} />
-        <button onClick={() => setScanning(false)} className="w-full py-2 rounded-lg bg-white text-slate-700 ring-1 ring-slate-300 text-sm">Cancel</button>
-        {error && <div className="text-sm text-rose-600">{error}</div>}
+        <button onClick={() => setScanning(false)} className="w-full py-2 rounded-md bg-bh-panel text-bh-dim ring-1 ring-bh-line hover:text-white hover:bg-bh-surface text-sm">Cancel</button>
+        {error && <div className="text-sm text-bh-magenta">{error}</div>}
       </div>
     )
   }
   return (
     <div className="space-y-3">
-      <button onClick={() => setScanning(true)} className="w-full py-3 rounded-lg bg-slate-800 text-white font-semibold">
+      <button onClick={() => setScanning(true)} className="bh-btn-primary w-full">
         Scan another team's QR
       </button>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-bh-dim">
         Across the 4 blue squares, you must use teams of <strong>4 different colours</strong>.
       </p>
-      {error && <div className="text-sm text-rose-600">{error}</div>}
+      {error && <div className="text-sm text-bh-magenta">{error}</div>}
     </div>
   )
 }
@@ -278,28 +278,28 @@ function PhotoWithTeamFlow({ team, square, onSubmit }: VerifProps) {
   return (
     <div className="space-y-4">
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-slate-700">1. Scan the other team's QR</h2>
+        <h2 className="bh-display text-xs tracking-wider text-bh-lime">1. Scan the other team's QR</h2>
         {scannedTeam ? (
           <ScannedTeamCard scannedTeam={scannedTeam} onChange={() => setScannedTeam(null)} />
         ) : scanning ? (
           <>
             <QRScanner onScan={onScan} />
-            <button onClick={() => setScanning(false)} className="w-full py-2 rounded-lg bg-white text-slate-700 ring-1 ring-slate-300 text-sm">Cancel</button>
+            <button onClick={() => setScanning(false)} className="w-full py-2 rounded-md bg-bh-panel text-bh-dim ring-1 ring-bh-line hover:text-white hover:bg-bh-surface text-sm">Cancel</button>
           </>
         ) : (
-          <button onClick={() => setScanning(true)} className="w-full py-3 rounded-lg bg-slate-800 text-white font-semibold">
+          <button onClick={() => setScanning(true)} className="bh-btn-primary w-full">
             Scan another team's QR
           </button>
         )}
       </section>
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-slate-700">2. Take a photo together</h2>
+        <h2 className="bh-display text-xs tracking-wider text-bh-lime">2. Take a photo together</h2>
         <PhotoCapture onChange={setFile} />
       </section>
-      <button onClick={submit} disabled={submitting || !scannedTeam || !file} className="w-full py-3 rounded-lg bg-emerald-600 text-white font-semibold disabled:opacity-50">
+      <button onClick={submit} disabled={submitting || !scannedTeam || !file} className="bh-btn-primary w-full disabled:opacity-50 disabled:hover:bg-bh-lime disabled:hover:shadow-none">
         {submitting ? 'Submitting…' : 'Confirm completion'}
       </button>
-      {error && <div className="text-sm text-rose-600">{error}</div>}
+      {error && <div className="text-sm text-bh-magenta">{error}</div>}
     </div>
   )
 }
@@ -325,12 +325,12 @@ function SimplePhotoFlow({ team, square, onSubmit, kind }: VerifProps & { kind: 
     <div className="space-y-3">
       <PhotoCapture onChange={setFile} />
       {kind === 'mentor' && (
-        <p className="text-xs text-slate-500">A mentor will review and approve this. You'll see it light up on your card when they do.</p>
+        <p className="text-xs text-bh-dim">A mentor will review and approve this. You'll see it light up on your card when they do.</p>
       )}
-      <button onClick={submit} disabled={submitting || !file} className="w-full py-3 rounded-lg bg-emerald-600 text-white font-semibold disabled:opacity-50">
+      <button onClick={submit} disabled={submitting || !file} className="bh-btn-primary w-full disabled:opacity-50 disabled:hover:bg-bh-lime disabled:hover:shadow-none">
         {submitting ? 'Submitting…' : kind === 'auto' ? 'Confirm completion' : 'Send to mentor'}
       </button>
-      {error && <div className="text-sm text-rose-600">{error}</div>}
+      {error && <div className="text-sm text-bh-magenta">{error}</div>}
     </div>
   )
 }
@@ -353,27 +353,27 @@ function IgUrlFlow({ team, square, onSubmit }: VerifProps) {
   return (
     <div className="space-y-3">
       <label className="block">
-        <span className="text-sm font-medium text-slate-700">Instagram post URL</span>
+        <span className="bh-display text-[0.65rem] tracking-wider text-bh-dim">Instagram post URL</span>
         <input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://www.instagram.com/p/…"
-          className="mt-1 w-full rounded-lg ring-1 ring-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-md ring-1 ring-bh-line bg-black/40 px-3 py-2 text-sm text-white placeholder:text-bh-dim focus:ring-bh-lime focus:outline-none"
         />
       </label>
-      <p className="text-xs text-slate-500">A mentor will check the post for the #BH26 hashtag.</p>
-      <button onClick={submit} disabled={submitting || !url} className="w-full py-3 rounded-lg bg-emerald-600 text-white font-semibold disabled:opacity-50">
+      <p className="text-xs text-bh-dim">A mentor will check the post for the #BH26 hashtag.</p>
+      <button onClick={submit} disabled={submitting || !url} className="bh-btn-primary w-full disabled:opacity-50 disabled:hover:bg-bh-lime disabled:hover:shadow-none">
         {submitting ? 'Submitting…' : 'Send to mentor'}
       </button>
-      {error && <div className="text-sm text-rose-600">{error}</div>}
+      {error && <div className="text-sm text-bh-magenta">{error}</div>}
     </div>
   )
 }
 
 function BoothQrHint() {
   return (
-    <div className="space-y-3 p-4 rounded-lg bg-white ring-1 ring-slate-200">
-      <p className="text-sm text-slate-700">
+    <div className="space-y-3 p-4 bh-card">
+      <p className="text-sm text-white/80">
         Head to the Deepfake booth at the tech showcase. Scan the QR poster there with your phone's camera (or any QR
         scanner) — it'll mark this square as complete.
       </p>
@@ -388,15 +388,15 @@ function ScannedTeamCard({ scannedTeam, onChange }: { scannedTeam: Team; onChang
     scannedTeam.colour === 'green' ? 'bg-team-green' :
     'bg-team-yellow'
   return (
-    <div className="p-4 rounded-lg bg-white shadow-sm ring-1 ring-slate-200 flex items-center gap-3">
-      <div className={['w-5 h-5 rounded-full ring-2 ring-white shadow', swatch].join(' ')} />
+    <div className="p-4 bh-card flex items-center gap-3">
+      <div className={['w-5 h-5 rounded-full ring-2 ring-black/40', swatch].join(' ')} />
       <div className="flex-1 min-w-0">
-        <div className="text-xs text-slate-500 uppercase tracking-wide">Scanned team</div>
-        <div className="text-base font-semibold truncate">{scannedTeam.name}</div>
-        <div className="text-xs text-slate-500 capitalize">{scannedTeam.colour} group</div>
+        <div className="bh-display text-[0.6rem] text-bh-dim tracking-wider">Scanned team</div>
+        <div className="bh-display text-base font-bold truncate text-white">{scannedTeam.name}</div>
+        <div className="text-xs text-bh-dim capitalize">{scannedTeam.colour} group</div>
       </div>
       {onChange && (
-        <button onClick={onChange} className="text-xs text-slate-500 underline">Change</button>
+        <button onClick={onChange} className="text-xs text-bh-lime underline">Change</button>
       )}
     </div>
   )

@@ -15,7 +15,7 @@ const GameControls = lazy(() => import('./pages/admin/GameControls'))
 const DrawSpin = lazy(() => import('./pages/admin/DrawSpin'))
 
 function Loading() {
-  return <div className="p-6 text-slate-500">Loading…</div>
+  return <div className="p-6 text-bh-dim bh-display text-xs">Loading…</div>
 }
 
 function App() {

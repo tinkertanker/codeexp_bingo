@@ -10,14 +10,14 @@ export default function TeamHome() {
   const { status, data, error } = useTeam(token)
 
   if (status === 'loading') {
-    return <div className="p-6 text-slate-500">Loading…</div>
+    return <div className="p-6 text-bh-dim bh-display text-xs">Loading…</div>
   }
 
   if (status === 'not_found') {
     return (
       <div className="p-6 max-w-md mx-auto">
-        <h1 className="text-xl font-semibold mb-2">Team not found</h1>
-        <p className="text-sm text-slate-600 mb-4">
+        <h1 className="bh-display text-xl font-bold mb-2">Team not found</h1>
+        <p className="text-sm text-bh-dim mb-4">
           That magic link doesn't match any team. Check with a mentor on Discord, or scan your team's QR card.
         </p>
         <button
@@ -25,7 +25,7 @@ export default function TeamHome() {
             clearTeamToken()
             window.location.href = '/'
           }}
-          className="px-3 py-2 rounded-lg bg-slate-200 text-sm"
+          className="px-3 py-2 rounded-md ring-1 ring-bh-line bg-bh-panel text-sm hover:bg-bh-surface"
         >
           Forget this device
         </button>
@@ -34,7 +34,7 @@ export default function TeamHome() {
   }
 
   if (status === 'error' || !data) {
-    return <div className="p-6 text-rose-600">Error: {error}</div>
+    return <div className="p-6 text-bh-magenta">Error: {error}</div>
   }
 
   const completedPositions = new Set(
@@ -47,12 +47,12 @@ export default function TeamHome() {
   const entries = lines
 
   return (
-    <div className="min-h-screen bg-slate-50 p-3 sm:p-6">
+    <div className="min-h-screen p-3 sm:p-6">
       <div className="max-w-2xl mx-auto">
         <TeamHeader team={data.team} lines={lines} entries={entries} />
         {!data.gameOpen && (
-          <div className="mb-3 p-3 rounded-lg bg-amber-100 text-amber-900 text-sm">
-            <strong>The bingo is paused.</strong> You can browse your card but can't submit new squares right now.
+          <div className="mb-3 p-3 rounded-md ring-1 ring-bh-yellow/40 bg-bh-yellow/10 text-bh-yellow text-sm">
+            <strong className="bh-display tracking-wider">Game paused.</strong> You can browse your card but can't submit new squares right now.
           </div>
         )}
         <BingoGrid
@@ -61,16 +61,10 @@ export default function TeamHome() {
           hrefForSquare={(sq) => `/t/${data.team.token}/square/${sq.position}`}
         />
         <div className="mt-6 grid grid-cols-2 gap-2">
-          <Link
-            to={`/t/${data.team.token}/project`}
-            className="text-center py-3 rounded-lg bg-slate-800 text-white font-medium"
-          >
+          <Link to={`/t/${data.team.token}/project`} className="bh-btn-primary text-sm">
             Project submission
           </Link>
-          <Link
-            to="/scoreboard"
-            className="text-center py-3 rounded-lg bg-white text-slate-800 font-medium ring-1 ring-slate-300"
-          >
+          <Link to="/scoreboard" className="bh-btn-ghost text-sm">
             Scoreboard
           </Link>
         </div>

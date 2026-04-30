@@ -50,7 +50,7 @@ export default function QRScanner({ onScan, onError }: QRScannerProps) {
 
   if (permissionError) {
     return (
-      <div className="p-4 rounded-lg bg-rose-50 text-rose-800 text-sm">
+      <div className="p-4 rounded-md ring-1 ring-bh-magenta/40 bg-bh-magenta/10 text-bh-magenta text-sm">
         Camera access blocked: {permissionError}. Check browser permissions and reload.
       </div>
     )
@@ -58,8 +58,8 @@ export default function QRScanner({ onScan, onError }: QRScannerProps) {
 
   return (
     <div className="relative">
-      <div id={containerId} className="w-full max-w-md mx-auto rounded-lg overflow-hidden bg-black aspect-square" />
-      <p className="text-xs text-slate-500 text-center mt-2">Hold your phone steady — QR will auto-detect.</p>
+      <div id={containerId} className="w-full max-w-md mx-auto rounded-md overflow-hidden bg-black aspect-square ring-1 ring-bh-lime/40 shadow-neon-lime" />
+      <p className="text-xs text-bh-dim text-center mt-2">Hold your phone steady — QR will auto-detect.</p>
     </div>
   )
 }

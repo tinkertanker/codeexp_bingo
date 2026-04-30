@@ -11,17 +11,17 @@ export default function PhotoWall({ photos, teamsById, cap = 18 }: PhotoWallProp
   const recent = photos.slice(0, cap)
   if (recent.length === 0) {
     return (
-      <div className="grid place-items-center h-full text-slate-300 text-2xl">
-        Photos appear here as teams play.
+      <div className="grid place-items-center h-full text-bh-dim bh-display tracking-widest text-lg">
+        PHOTOS APPEAR HERE AS TEAMS PLAY.
       </div>
     )
   }
   return (
-    <div className="grid grid-cols-3 gap-3 auto-rows-[1fr]">
+    <div className="grid grid-cols-3 gap-3 h-full auto-rows-fr">
       {recent.map((p) => {
         const team = teamsById.get(p.team_id)
         return (
-          <figure key={p.id} className="relative rounded-lg overflow-hidden ring-1 ring-white/10 bg-black/20">
+          <figure key={p.id} className="relative aspect-square rounded-lg overflow-hidden ring-1 ring-white/10 bg-black/20">
             <img
               src={publicPhotoUrl(p.storage_path)}
               alt=""

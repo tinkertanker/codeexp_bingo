@@ -71,36 +71,38 @@ export default function BoothDeepfake() {
   }, [navigate])
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-b from-fuchsia-50 to-fuchsia-200">
-      <h1 className="text-3xl font-bold mb-2">Deepfake booth</h1>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6">
+      <h1 className="bh-display text-3xl font-extrabold mb-4 text-white">
+        DEEPFAKE <span className="text-bh-magenta">BOOTH</span>
+      </h1>
       {phase === 'init' || phase === 'submitting' ? (
-        <p className="text-slate-600">Marking your bingo square…</p>
+        <p className="text-bh-dim bh-display tracking-wider text-sm animate-pulse">Marking your bingo square…</p>
       ) : phase === 'no_token' ? (
-        <div className="bg-white rounded-xl shadow p-6 max-w-md">
-          <p className="text-sm text-slate-700 mb-3">
+        <div className="bh-card p-6 max-w-md">
+          <p className="text-sm text-white/80 mb-3">
             You need to be logged in as your team to claim the booth visit. Open your team's magic link first, then come back to this poster.
           </p>
-          <Link to="/" className="block text-center w-full py-3 rounded-lg bg-slate-800 text-white font-medium">
+          <Link to="/" className="bh-btn-primary w-full">
             Open team home
           </Link>
         </div>
       ) : phase === 'already_done' ? (
-        <div className="bg-white rounded-xl shadow p-6 max-w-md text-center">
-          <p className="text-emerald-700 text-lg font-semibold">Already claimed ✓</p>
+        <div className="bh-card p-6 max-w-md text-center">
+          <p className="bh-display text-bh-lime text-lg font-bold">Already claimed ✓</p>
           {team && (
-            <Link to={`/t/${team.token}`} className="mt-4 inline-block px-4 py-2 rounded-lg bg-slate-800 text-white text-sm">
+            <Link to={`/t/${team.token}`} className="bh-btn-primary mt-4 text-sm">
               Back to bingo card
             </Link>
           )}
         </div>
       ) : phase === 'done' ? (
-        <div className="bg-white rounded-xl shadow p-6 max-w-md text-center">
-          <p className="text-emerald-700 text-2xl font-bold">Booth visit claimed!</p>
-          <p className="text-sm text-slate-500 mt-2">Redirecting…</p>
+        <div className="bh-card p-6 max-w-md text-center">
+          <p className="bh-display text-bh-lime text-2xl font-extrabold drop-shadow-[0_0_12px_rgba(166,251,0,0.65)]">Booth visit claimed!</p>
+          <p className="text-sm text-bh-dim mt-2">Redirecting…</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow p-6 max-w-md">
-          <p className="text-rose-600 text-sm">{error ?? 'Something went wrong.'}</p>
+        <div className="bh-card p-6 max-w-md">
+          <p className="text-bh-magenta text-sm">{error ?? 'Something went wrong.'}</p>
         </div>
       )}
     </div>

@@ -36,8 +36,8 @@ export default function ProjectSubmit() {
     })
   }, [status, data])
 
-  if (status === 'loading') return <div className="p-6 text-slate-500">Loading…</div>
-  if (status !== 'ok' || !data) return <div className="p-6 text-rose-600">Team not found.</div>
+  if (status === 'loading') return <div className="p-6 text-bh-dim bh-display text-xs">Loading…</div>
+  if (status !== 'ok' || !data) return <div className="p-6 text-bh-magenta">Team not found.</div>
 
   const runRepoCheck = async () => {
     if (!githubUrl) return
@@ -114,17 +114,17 @@ export default function ProjectSubmit() {
   const bonusEarned = existing?.zip_clean === true
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4">
+    <div className="min-h-screen p-4">
       <div className="max-w-md mx-auto space-y-4">
-        <Link to={`/t/${data.team.token}`} className="text-sm text-slate-500 hover:text-slate-800">← Back</Link>
-        <h1 className="text-xl font-bold">Project submission</h1>
-        <p className="text-sm text-slate-600">
-          Submit your project for judging. The GitHub URL is required. A clean ZIP (no <code>node_modules</code>) earns
-          you <strong>+1 bonus lucky-draw entry</strong>.
+        <Link to={`/t/${data.team.token}`} className="bh-display text-xs tracking-wider text-bh-dim hover:text-bh-lime">← Back</Link>
+        <h1 className="bh-display text-xl font-bold text-white">Project Submission</h1>
+        <p className="text-sm text-bh-dim">
+          Submit your project for judging. The GitHub URL is required. A clean ZIP (no <code className="font-mono text-bh-lime">node_modules</code>) earns
+          you <strong className="text-bh-lime">+1 bonus lucky-draw entry</strong>.
         </p>
 
-        <section className="bg-white rounded-lg ring-1 ring-slate-200 p-4 space-y-3">
-          <h2 className="text-sm font-semibold">GitHub repo URL</h2>
+        <section className="bh-card p-4 space-y-3">
+          <h2 className="bh-display text-xs tracking-wider text-bh-lime">1. GITHUB REPO URL</h2>
           <input
             value={githubUrl}
             onChange={(e) => {
@@ -132,20 +132,20 @@ export default function ProjectSubmit() {
               setGithubCheck(null)
             }}
             placeholder="https://github.com/owner/repo"
-            className="w-full rounded-lg ring-1 ring-slate-300 px-3 py-2 text-sm"
+            className="w-full rounded-md ring-1 ring-bh-line bg-black/40 px-3 py-2 text-sm text-white placeholder:text-bh-dim focus:ring-bh-lime focus:outline-none"
           />
           <button
             onClick={runRepoCheck}
             disabled={!githubUrl || checkingRepo}
-            className="px-3 py-2 rounded-lg bg-slate-800 text-white text-sm disabled:opacity-50"
+            className="bh-btn-ghost text-sm disabled:opacity-50"
           >
             {checkingRepo ? 'Checking…' : 'Check repo'}
           </button>
           {githubCheck && (
             <div
               className={[
-                'p-3 rounded-lg text-sm',
-                githubCheck.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800',
+                'p-3 rounded-md text-sm ring-1',
+                githubCheck.ok ? 'bg-bh-lime/10 text-bh-lime ring-bh-lime/40' : 'bg-bh-magenta/10 text-bh-magenta ring-bh-magenta/40',
               ].join(' ')}
             >
               {githubCheck.ok
@@ -155,14 +155,14 @@ export default function ProjectSubmit() {
           )}
         </section>
 
-        <section className="bg-white rounded-lg ring-1 ring-slate-200 p-4 space-y-3">
-          <h2 className="text-sm font-semibold">Optional: code ZIP for the bonus entry</h2>
-          <p className="text-xs text-slate-500">
-            We'll reject ZIPs that contain <code>node_modules</code>, <code>.git</code>, <code>.venv</code>, or single
+        <section className="bh-card p-4 space-y-3">
+          <h2 className="bh-display text-xs tracking-wider text-bh-lime">2. OPTIONAL: CODE ZIP</h2>
+          <p className="text-xs text-bh-dim">
+            We'll reject ZIPs that contain <code className="font-mono">node_modules</code>, <code className="font-mono">.git</code>, <code className="font-mono">.venv</code>, or single
             files larger than 50 MB.
           </p>
           {existing?.zip_clean && !zipFile && (
-            <div className="p-2 rounded bg-emerald-50 text-emerald-800 text-xs">
+            <div className="p-2 rounded bg-bh-lime/10 text-bh-lime ring-1 ring-bh-lime/40 text-xs">
               Clean ZIP already on file — bonus entry secured.
             </div>
           )}
@@ -170,14 +170,14 @@ export default function ProjectSubmit() {
             type="file"
             accept=".zip,application/zip"
             onChange={(e) => onZipPick(e.target.files?.[0] ?? null)}
-            className="block w-full text-sm"
+            className="block w-full text-sm text-bh-dim file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:bh-display file:text-xs file:tracking-wider file:bg-bh-lime file:text-black hover:file:bg-white"
           />
-          {inspectingZip && <p className="text-xs text-slate-500">Inspecting ZIP…</p>}
+          {inspectingZip && <p className="text-xs text-bh-dim">Inspecting ZIP…</p>}
           {zipCheck && (
             <div
               className={[
-                'p-3 rounded-lg text-sm',
-                zipCheck.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800',
+                'p-3 rounded-md text-sm ring-1',
+                zipCheck.ok ? 'bg-bh-lime/10 text-bh-lime ring-bh-lime/40' : 'bg-bh-magenta/10 text-bh-magenta ring-bh-magenta/40',
               ].join(' ')}
             >
               {zipCheck.ok
@@ -190,14 +190,14 @@ export default function ProjectSubmit() {
         <button
           onClick={submit}
           disabled={submitting || !githubCheck?.ok || (zipFile != null && zipCheck != null && !zipCheck.ok)}
-          className="w-full py-3 rounded-lg bg-emerald-600 text-white font-semibold disabled:opacity-50"
+          className="bh-btn-primary w-full disabled:opacity-50 disabled:hover:bg-bh-lime disabled:hover:shadow-none"
         >
           {submitting ? 'Saving…' : 'Save submission'}
         </button>
-        {error && <div className="text-sm text-rose-600">{error}</div>}
+        {error && <div className="text-sm text-bh-magenta">{error}</div>}
         {savedAt && (
-          <div className="text-sm text-emerald-700">
-            Saved at {savedAt.toLocaleTimeString()}. {bonusEarned ? 'Bonus entry secured ✨' : ''}
+          <div className="text-sm text-bh-lime bh-display tracking-wider">
+            Saved at {savedAt.toLocaleTimeString()}. {bonusEarned ? '★ BONUS ENTRY SECURED' : ''}
           </div>
         )}
       </div>

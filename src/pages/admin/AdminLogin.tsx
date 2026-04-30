@@ -20,33 +20,38 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-6">
-      <form onSubmit={submit} className="bg-white rounded-xl shadow p-6 w-full max-w-sm space-y-3">
-        <h1 className="text-xl font-bold">Mentor / admin</h1>
-        <p className="text-xs text-slate-500">
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <form onSubmit={submit} className="relative bh-card p-6 w-full max-w-sm space-y-3 overflow-hidden">
+        <div className="absolute -top-1 left-6 h-1 w-16 bg-bh-lime" />
+        <div className="absolute -bottom-1 right-6 h-1 w-12 bg-bh-magenta" />
+        <div className="flex items-center gap-3">
+          <img src="/code-exp-logo.png" alt="" className="w-8 h-8" />
+          <h1 className="bh-display text-xl font-bold text-white">Mentor / Admin</h1>
+        </div>
+        <p className="text-xs text-bh-dim">
           Your name is recorded against every approval / rejection — that's the audit trail.
         </p>
         <label className="block">
-          <span className="text-sm font-medium text-slate-700">Your name</span>
+          <span className="bh-display text-[0.65rem] tracking-wider text-bh-dim">Your name</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded-lg ring-1 ring-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-md ring-1 ring-bh-line bg-black/40 px-3 py-2 text-sm text-white placeholder:text-bh-dim focus:ring-bh-lime focus:outline-none"
             autoCapitalize="words"
             autoComplete="given-name"
           />
         </label>
         <label className="block">
-          <span className="text-sm font-medium text-slate-700">Passcode</span>
+          <span className="bh-display text-[0.65rem] tracking-wider text-bh-dim">Passcode</span>
           <input
             type="password"
             value={passcode}
             onChange={(e) => setPasscode(e.target.value)}
-            className="mt-1 w-full rounded-lg ring-1 ring-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-md ring-1 ring-bh-line bg-black/40 px-3 py-2 text-sm text-white focus:ring-bh-lime focus:outline-none"
           />
         </label>
-        {error && <div className="text-sm text-rose-600">{error}</div>}
-        <button type="submit" className="w-full py-3 rounded-lg bg-slate-800 text-white font-medium">
+        {error && <div className="text-sm text-bh-magenta">{error}</div>}
+        <button type="submit" className="bh-btn-primary w-full">
           Sign in
         </button>
       </form>
