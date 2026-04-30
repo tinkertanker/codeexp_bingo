@@ -1,8 +1,8 @@
 # Manual test plan
 
-End-to-end checklist for verifying the app works. Goes well with two browser profiles (Profile A and Profile B in Chrome / two private windows) or two phones on the same Wi-Fi. **Convex migration is pending; this test plan applies to the Supabase build today and will be re-validated after migration.**
+End-to-end checklist for verifying the app works. Goes well with two browser profiles (Profile A and Profile B in Chrome / two private windows) or two phones on the same Wi-Fi.
 
-> **Setup before testing:** spin up a Supabase project, push migrations, set env vars, `npm run dev`, then sign in to `/admin` and create at least 4 teams across different colour groups. Open the game from `/admin/game`.
+> **Setup before testing:** bring up Convex (`npx convex dev`), set `ADMIN_PASSCODE` and `ORGANISER_NAMES` (`npx convex env set …`), seed the squares (`npx convex run seed:seedAll '{ "passcode": "…" }'`), set the matching `VITE_*` vars in `.env`, then `npm run dev`. Sign in to `/admin`, create at least 4 teams across different colour groups, and open the game from `/admin/game`. See `docs/CONVEX_BOOTSTRAP.md` for the longer walkthrough.
 
 ## Legend
 
@@ -123,7 +123,7 @@ End-to-end checklist for verifying the app works. Goes well with two browser pro
 
 ## O. Audit trail spot check
 
-- [ ] After running through the above, query in Supabase: `select count(*) from mentor_actions group by action;` — there should be approve, reject, draw, regen_token, create_team, open_game, close_game rows with mentor names attached.
+- [ ] After running through the above, in the Convex dashboard open the `mentorActions` table — you should see rows for each kind: approve, reject, draw, regen_token, create_team, open_game, close_game, with mentor names attached.
 
 ---
 

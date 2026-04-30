@@ -9,12 +9,11 @@ Replaces the original sticker/paper bingo card. Each of ~40 teams plays a 4×4 b
 ## Stack
 
 - React 19 + TypeScript + Vite 6 + Tailwind 3
-- Supabase (Postgres + Realtime + Storage) — current runtime backend
-- Convex backend scaffolded under `convex/` (schema + queries + mutations + actions); frontend not yet switched over. See `docs/HANDOVER.md` for the migration plan.
+- **Convex** (database + reactive queries + storage + actions). All backend code lives under `convex/`.
 - Netlify hosting
 - `qrcode` (render) + `html5-qrcode` (scan, browser camera)
 - `jszip` (client-side ZIP central-directory inspection)
-- GitHub REST API (client-side, no token — public-repo check)
+- GitHub REST API via a Convex action (`convex/githubCheck.ts`) — server-side fetch, not subject to per-IP rate limits
 
 ## Theme
 
@@ -23,16 +22,16 @@ UI is restyled to match the **BrainHack 2026 / CODE_EXP** brand: dark surface (`
 ## Identity model (no real auth)
 
 - **Teams**: each team has an opaque token. The "magic link" is `/t/<token>`. Mentors share via Discord. Token persisted in `localStorage`.
-- **Mentors / organisers**: shared `VITE_ADMIN_PASSCODE` env var. On admin login, mentor types their **name** (free text), stored in localStorage and stamped on every approve/reject — that's the audit trail. Organiser superpowers (open/close game, lucky draw) are gated by a `VITE_ORGANISER_NAMES` allow-list env var (comma-separated).
+- **Mentors / organisers**: shared passcode. The client checks it against `VITE_ADMIN_PASSCODE`; every Convex mutation also re-validates it server-side against `ADMIN_PASSCODE` (set via `npx convex env set`). On admin login, mentors type their **name** (free text), stored in localStorage and stamped on every approve/reject — that's the audit trail. Organiser superpowers (open/close game, lucky draw) are gated client-side by `VITE_ORGANISER_NAMES` and server-side by `ORGANISER_NAMES` (must match).
 
 ## Game mechanics — 16 squares
 
-Same 4×4 grid for everyone. Three categories from DSTA's brief plus one wild card. See `supabase/migrations/0001_init.sql` for exact seed data.
+Same 4×4 grid for everyone. Three categories from DSTA's brief plus one wild card. See `convex/seed.ts` for exact seed data.
 
 | Category | Count | Verification |
 |---|---|---|
 | Orange — "Find a team that did X" | 6 | Scan another team's QR (or self). Auto-approves. |
-| Blue — "Ask another team a question" | 4 | Scan another team + type their answer. Colour rule: across the 4 blue squares, no two scans may share a team-colour group. |
+| Blue — "Ask another team a question" | 4 | Scan another team + type their answer. Colour rule: across the 4 blue squares, no two scans may share a team-colour group (enforced server-side in `convex/completions.ts`). |
 | Grey — Photo with team | 1 | Scan team + upload photo. Auto-approve. |
 | Grey — Photo with mentor / on stage | 2 | Upload photo. Mentor approves. |
 | Grey — IG post #BH26 | 1 | Paste IG URL. Mentor approves. |
@@ -43,14 +42,14 @@ Same 4×4 grid for everyone. Three categories from DSTA's brief plus one wild ca
 
 - Entries: 1 per completed bingo line + 1 bonus for a clean ZIP upload.
 - Public GitHub URL is required for code submission but doesn't itself add an entry.
-- Draw flow: `/admin/draw` (organiser only) → spin animation → 3 weighted-random winners → broadcast to `/scoreboard` via Supabase realtime.
+- Draw flow: `/admin/draw` (organiser only) → `api.draw.run` mutation picks 3 weighted-random winners server-side and saves to `gameState.drawWinners` → in-app spin animation reveals them → scoreboard reactively shows the winners banner.
 
 ## Routes
 
 **Public**
 - `/` — splash; auto-redirects if a team token is in localStorage.
 - `/t/:token` — team home (the bingo card).
-- `/t/:token/square/:position` — square detail (verification UI per `verification_kind`).
+- `/t/:token/square/:position` — square detail (verification UI per `verificationKind`).
 - `/t/:token/qr` — big QR for other teams to scan.
 - `/t/:token/project` — GitHub URL + ZIP upload.
 - `/booth/deepfake` — auto-completes the booth square.
@@ -65,80 +64,95 @@ Same 4×4 grid for everyone. Three categories from DSTA's brief plus one wild ca
 
 ## Schema
 
-See `supabase/migrations/0001_init.sql` for source of truth. Tables:
+Source of truth: `convex/schema.ts`. Tables (camelCase, with `_id` and `_creationTime` system fields):
 
-- `teams` (token, colour group)
-- `bingo_squares` (16 seeded rows)
-- `square_completions` (status + evidence; one row per (team, square) via unique constraint)
-- `mentor_actions` (audit trail of every admin action)
-- `code_submissions` (one per team)
-- `photos` (denormalised for fast gallery)
-- `game_state` (single row, is_open + draw_winners)
-
-`0002_storage.sql` creates the `photos` and `code-zips` Supabase Storage buckets and their public-read / public-write policies.
-
-RLS is **disabled** to match sister projects. Token-in-URL is the soft access control.
+- `teams` — token, colour group. Indexed by `token`, `colour`.
+- `bingoSquares` — 16 seeded rows. Indexed by `position`.
+- `squareCompletions` — status + evidence; one row per (team, square) via the `by_team_and_square` index. Photo evidence is a `Id<'_storage'>` reference, not a path.
+- `mentorActions` — audit trail of every admin action.
+- `codeSubmissions` — one per team. Indexed by `teamId`.
+- `photos` — denormalised for the public photo wall. References `_storage` for the file.
+- `gameState` — singleton (queried via `.first()`); holds `isOpen` + `drawWinners`.
 
 ## Storage
 
-- `photos` bucket — public read + write. Stores all photo evidence and the public photo wall.
-- `code-zips` bucket — public read + write. Stores submitted project ZIPs (we inspect them client-side via JSZip before upload to reject `node_modules` / oversized files).
+Convex Storage holds all photos and submitted ZIPs. Files are referenced by `Id<'_storage'>`; queries that return them call `ctx.storage.getUrl(...)` to mint signed URLs (e.g. `api.photos.recent`, `api.scoreboard.bundle`, `api.completions.listPending`). The frontend uploads via `api.upload.generateUploadUrl` → POST → save the returned storageId in the relevant mutation.
 
 ## Env vars
 
+**Frontend** (`.env` / `.env.local`, `cp .env.example .env`):
+
 ```
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-VITE_ADMIN_PASSCODE=
-VITE_ORGANISER_NAMES=YJ,Marcus      # comma-separated, case-insensitive
+VITE_CONVEX_URL=https://<your-deployment>.convex.cloud
+VITE_ADMIN_PASSCODE=change-me
+VITE_ORGANISER_NAMES=YJ,Marcus
 ```
 
-`VITE_ADMIN_PASSCODE` ships in the client bundle — fine for this trust model. Anyone with the passcode can act as a mentor; only names listed in `VITE_ORGANISER_NAMES` can flip game state or run the draw.
+**Convex deployment** (server-side, set via CLI — never reach the client bundle):
+
+```bash
+npx convex env set ADMIN_PASSCODE 'change-me'
+npx convex env set ORGANISER_NAMES 'YJ,Marcus'
+```
+
+Both passcodes must match. The frontend gates the admin UI; every Convex mutation independently re-checks the passcode (and organiser allow-list for `setOpen` / `draw.run` / etc.).
 
 ## Setup
 
 ```bash
 npm install
-cp .env.example .env  # fill in Supabase values + admin passcode
+cp .env.example .env
+
+# First-time: bootstrap a Convex project, generates convex/_generated/, deploys schema + functions.
+npx convex dev   # leave running while developing — it hot-reloads Convex code on save
+
+# Server-side env vars + seed the 16 bingo squares.
+npx convex env set ADMIN_PASSCODE 'change-me'
+npx convex env set ORGANISER_NAMES 'YJ,Marcus'
+npx convex run seed:seedAll '{ "passcode": "change-me" }'
+
+# In another terminal:
 npm run dev
 ```
 
-Provision Supabase, then run migrations:
-```bash
-supabase link --project-ref <ref>
-supabase db push
-```
-
-The migration creates buckets too (no extra storage setup needed).
+For deeper setup notes see `docs/CONVEX_BOOTSTRAP.md`.
 
 ## Pre-event setup tasks
 
-- Add 40 teams via `/admin/teams` (or write a seed script to bulk-insert).
+- Add 40 teams via `/admin/teams` (or write a seed script that calls `api.teams.create`).
 - Print 40 team magic-link cards. Each card shows: team name, colour group, the team's `/t/<token>` QR. The QR doubles as: (a) the team's "log in here on a fresh phone" link and (b) the QR other teams scan to complete bingo squares.
 - Print one Deepfake-booth poster encoding the URL `/booth/deepfake`.
-- Add organiser names to `VITE_ORGANISER_NAMES` so the draw and game-open/close buttons show for them.
-- Decide a memorable passcode for `VITE_ADMIN_PASSCODE` and share it with mentors via Discord.
+- Make sure `ORGANISER_NAMES` is set on the Convex deployment AND mirrored in `VITE_ORGANISER_NAMES` so the draw and game-open/close buttons show for them.
+- Decide a memorable passcode and set it on both sides (`VITE_ADMIN_PASSCODE` + `npx convex env set ADMIN_PASSCODE`). Share with mentors via Discord.
 
 ## Implementation status
 
-All 10 phases complete:
+All 10 original phases complete + the Supabase → Convex backend migration:
 
-- [x] Phase 1 — Bootstrap (Vite + Tailwind + Supabase client + router)
+- [x] Phase 1 — Bootstrap (Vite + Tailwind + router)
 - [x] Phase 2 — Schema + 16-square seed
 - [x] Phase 3 — Team identity + bingo grid render
 - [x] Phase 4 — Orange-square scan happy path (QR scanner + team QR)
 - [x] Phase 5 — All 7 verification kinds + photo upload + colour rule
 - [x] Phase 6 — Admin queue, audit trail, teams management, game controls
-- [x] Phase 7 — GitHub URL + ZIP upload (client-side JSZip inspection)
-- [x] Phase 8 — Live scoreboard + photo wall (realtime)
+- [x] Phase 7 — GitHub URL + ZIP upload (client-side JSZip inspection + server-side GitHub action)
+- [x] Phase 8 — Live scoreboard + photo wall (Convex reactive queries)
 - [x] Phase 9 — Lucky draw with spin animation
-- [x] Phase 10 — Game-open/close gating + code-splitting + dev-server smoke test
+- [x] Phase 10 — Game-open/close gating + code-splitting
+- [x] Backend migration — Supabase removed; all reads/writes go through Convex queries/mutations/actions
 
-Build: `npm run build` produces a ~451KB initial JS chunk; SquareDetail (with html5-qrcode) and ProjectSubmit (with JSZip) lazy-load on demand.
+Build: `npm run build` produces a ~316KB initial JS chunk; SquareDetail (with html5-qrcode) and ProjectSubmit (with JSZip) lazy-load on demand.
 
 ## Known scope decisions
 
-- No Edge Functions in v1. All writes happen client-side against the unrestricted tables. Trust posture matches sister hackathon apps.
-- No real-time enforcement of the blue colour rule beyond the client check. A team that bypasses the UI could theoretically submit duplicates, but the rule shows visibly in the UI and the audit trail catches it.
-- ZIP cleanliness check is also client-side (server has no second look). For a 40-team friendly event, this is fine.
-- Photos and ZIPs go to Supabase Storage, not R2. Simpler — same client, same auth, free tier covers the event.
+- Business logic (blue colour rule, ZIP cleanliness check, draw weighting) lives in Convex mutations, so the trust model is no longer pure honour code.
+- ZIP cleanliness check still happens client-side via JSZip before upload (server doesn't re-inspect). For a 40-team friendly event, this is fine.
+- Game-state lock and blue colour rule are now enforced in `convex/completions.ts` mutations — bypassing the client UI gets you a server error.
+
+<!-- convex-ai-start -->
+This project uses [Convex](https://convex.dev) as its backend.
+
+When working on Convex code, **always read `convex/_generated/ai/guidelines.md` first** for important guidelines on how to correctly use Convex APIs and patterns. The file contains rules that override what you may have learned about Convex from training data.
+
+Convex agent skills for common tasks can be installed by running `npx convex ai-files install`.
+<!-- convex-ai-end -->

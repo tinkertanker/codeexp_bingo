@@ -6,56 +6,58 @@ A companion web app for the **DSTA CODE_EXP / BrainHack 2026** hackathon "Secret
 
 ```bash
 npm install
-cp .env.example .env       # then edit .env with your Supabase project values
+cp .env.example .env
+
+# First-time only: bootstrap a Convex deployment. Opens a browser for login, then
+# generates convex/_generated/, deploys schema + functions, and prints the URL.
+npx convex dev
+
+# In another terminal:
 npm run dev
 ```
 
 Open <http://localhost:5173>. The splash page redirects to a team's bingo card if a magic-link token is in localStorage; otherwise it shows a "got a magic link?" message. To get a token, sign in to the admin panel (`/admin`) and create teams.
 
+`npx convex dev` writes `VITE_CONVEX_URL` into `.env.local` automatically. Edit `.env` to set `VITE_ADMIN_PASSCODE` and `VITE_ORGANISER_NAMES`. Mirror those server-side too:
+
+```bash
+npx convex env set ADMIN_PASSCODE 'change-me'
+npx convex env set ORGANISER_NAMES 'YJ,Marcus'
+
+# Seed the 16 bingo squares + create the singleton gameState row (idempotent).
+npx convex run seed:seedAll '{ "passcode": "change-me" }'
+```
+
+See `docs/CONVEX_BOOTSTRAP.md` for fuller setup notes.
+
 ### Required environment variables
 
 | Var | Purpose |
 |---|---|
-| `VITE_SUPABASE_URL` | Your Supabase project URL |
-| `VITE_SUPABASE_ANON_KEY` | Supabase anon key (public, ships in client bundle) |
+| `VITE_CONVEX_URL` | Convex deployment URL (printed by `npx convex dev`) |
 | `VITE_ADMIN_PASSCODE` | Shared mentor passcode (also ships in client bundle — fine for the trust model) |
 | `VITE_ORGANISER_NAMES` | Comma-separated names allowed to flip game state and run the lucky draw (e.g. `YJ,Marcus`) |
 
-### Setting up Supabase
-
-1. Create a Supabase project at <https://supabase.com>.
-2. Get the project ref from the dashboard URL.
-3. Link locally and push the migrations:
-   ```bash
-   supabase link --project-ref <ref>
-   supabase db push
-   ```
-   This creates all tables, seeds the 16 bingo squares, and creates the `photos` and `code-zips` storage buckets with public read/write.
-4. Paste the project URL + anon key into `.env`.
-5. `npm run dev`. Visit `/admin`, sign in with the passcode, and create some teams to play with.
-
-> **Note**: A migration to **Convex** is in progress (see `docs/HANDOVER.md`). Once that lands, the Supabase setup steps above won't apply.
+Server-side equivalents `ADMIN_PASSCODE` and `ORGANISER_NAMES` must match — set them with `npx convex env set`.
 
 ## What's where
 
 ```
 src/
 ├── App.tsx                         router with code-split routes
-├── main.tsx                        Vite entry
-├── index.css                       Tailwind directives
-├── lib/                            pure logic + API helpers
-│   ├── supabase.ts                 Supabase client + all domain types
+├── main.tsx                        Vite entry — wires <ConvexProvider>
+├── index.css                       Tailwind directives + theme utilities
+├── lib/                            pure logic + small client helpers
+│   ├── types.ts                    re-exports Convex Doc<> types under app-friendly names
 │   ├── token.ts                    localStorage helpers (team token, admin creds)
 │   ├── lines.ts                    bingo line counting (rows/cols/diagonals)
 │   ├── qr.ts                       QR magic-link encode/parse
-│   ├── storage.ts                  photo upload + public URL
+│   ├── storage.ts                  uploadToConvex helper (POST to upload URL)
 │   ├── standings.ts                compute lines + entries per team
-│   ├── submit.ts                   typed wrappers for each verification kind
-│   ├── admin.ts                    passcode check, organiser allow-list, audit
-│   ├── project.ts                  GitHub URL + ZIP inspection helpers
-│   └── draw.ts                     weighted-random pickWinners
+│   ├── admin.ts                    client-side passcode/organiser checks
+│   └── project.ts                  ZIP inspection (server runs the GitHub check)
 ├── hooks/
-│   └── useTeam.ts                  loads a team + subscribes to realtime
+│   └── useTeam.ts                  stacks Convex useQuery() calls for a team's view
 ├── components/                     reusable UI
 │   ├── BingoGrid.tsx, SquareCell.tsx, TeamHeader.tsx
 │   ├── QRScanner.tsx, PhotoCapture.tsx
@@ -68,20 +70,27 @@ src/
         ├── AdminLogin.tsx, ApprovalQueue.tsx
         ├── TeamsManage.tsx, GameControls.tsx, DrawSpin.tsx
 
-supabase/
-└── migrations/
-    ├── 0001_init.sql               tables + 16-square seed + realtime publication
-    └── 0002_storage.sql             photos + code-zips buckets and policies
-
-convex/                             Convex backend (scaffolded, not yet wired up — see docs/HANDOVER.md)
-├── schema.ts                       table definitions
-├── teams.ts, squares.ts, completions.ts, photos.ts, codeSubmissions.ts, gameState.ts, scoreboard.ts
-├── admin.ts, mentorActions.ts, draw.ts, githubCheck.ts, upload.ts
-└── seed.ts                         16-square seed mutation
+convex/                             Convex backend
+├── schema.ts                       table definitions + shared validators
+├── teams.ts                        list, getByToken, create, regenerateToken
+├── squares.ts                      list (16 squares, sorted by position)
+├── completions.ts                  submit* mutations + listForTeam + listPending (hydrated)
+├── photos.ts                       recent (with hydrated public URLs)
+├── codeSubmissions.ts              getForTeam, listAll, save (upsert)
+├── gameState.ts                    get, setOpen
+├── draw.ts                         run (weighted random server-side), clearWinners
+├── scoreboard.ts                   bundle (one query for the whole TV view), stats
+├── upload.ts                       generateUploadUrl mutation for storage
+├── githubCheck.ts                  action (server-side fetch to GitHub REST)
+├── admin.ts                        assertAdmin, assertOrganiser, approve/reject mutations
+├── mentorActions.ts                logMentorAction helper used across mutations
+├── seed.ts                         idempotent seedAll mutation for the 16 squares
+└── _generated/                     auto-generated by `npx convex dev` — never edit by hand
 
 docs/
+├── CONVEX_BOOTSTRAP.md             first-time setup walkthrough
 ├── TESTING.md                      manual test checklist
-└── HANDOVER.md                     current state + Convex migration plan
+└── HANDOVER.md                     intern follow-ups + open questions
 ```
 
 ## Routes
@@ -105,14 +114,14 @@ docs/
 ## Trust model (no real auth)
 
 - Each team has an opaque token. The "magic link" is `/t/<token>`. Anyone with that URL acts as that team.
-- Mentors share a single passcode. They identify themselves with a free-text name on every admin login; that name is stamped on every approve/reject action (`mentor_actions` table = audit trail).
-- Organisers are the subset of mentor names listed in `VITE_ORGANISER_NAMES`; only they see the game-open/close and lucky-draw buttons.
-- RLS is disabled on the database. Soft access control is the token-in-URL.
+- Mentors share a single passcode. The frontend gates the `/admin` UI; **every Convex mutation also re-checks the passcode server-side** via `assertAdmin` (and `assertOrganiser` for game-open/close + draw). They identify themselves with a free-text name on every admin login; that name is stamped on every approve/reject action (`mentorActions` table = audit trail).
+- Organisers are the subset of mentor names listed in `VITE_ORGANISER_NAMES` (client) and `ORGANISER_NAMES` (Convex env). Both must match.
+- The blue colour-distinct rule and game-open lock are enforced server-side in `convex/completions.ts` — bypassing the UI gets you a server error.
 
 ## Developer scripts
 
 ```bash
-npm run dev        # Vite dev server with HMR
+npm run dev        # Vite dev server with HMR (run `npx convex dev` separately)
 npm run build      # tsc -b && vite build → dist/
 npm run lint       # ESLint
 npm run preview    # serve dist/ for local production smoke test
@@ -120,10 +129,7 @@ npm run preview    # serve dist/ for local production smoke test
 
 ## Status & next steps
 
-See `docs/HANDOVER.md` for a fuller picture, including:
-- which features are complete and ready to test
-- the upcoming **Convex migration** that will replace the Supabase backend
-- known limitations and follow-up tasks for interns
+See `docs/HANDOVER.md` for known follow-ups and open questions, and `docs/TESTING.md` for the manual test checklist.
 
 ## Manual test plan
 

@@ -1,86 +1,50 @@
 # Handover notes
 
-The state of the project as of the **Convex migration** kickoff.
+State of the project just before the event.
 
 ## Where we are
 
-The full app is built and runnable against **Supabase**. All 10 originally-planned phases are complete:
+The full app is built and runnable against **Convex**. All 10 originally-planned phases are complete plus the Supabase → Convex backend migration:
 
 1. ✅ Project scaffold
-2. ✅ Schema + 16-square seed
+2. ✅ Schema + 16-square seed (`convex/schema.ts` + `convex/seed.ts`)
 3. ✅ Team identity + bingo grid
 4. ✅ Orange-square scan flow
-5. ✅ All 7 verification kinds + photo upload + colour-distinct rule
+5. ✅ All 7 verification kinds + photo upload + colour-distinct rule (server-enforced)
 6. ✅ Admin queue + audit trail + teams management
-7. ✅ Project submission (GitHub URL + ZIP inspection)
-8. ✅ Live scoreboard + photo wall
-9. ✅ Lucky draw with spin animation
+7. ✅ Project submission (GitHub URL via Convex action + ZIP inspection)
+8. ✅ Live scoreboard + photo wall (Convex reactive queries — no manual subscription plumbing)
+9. ✅ Lucky draw with spin animation (server picks weighted-random winners)
 10. ✅ Game open/close gating + code-splitting
+11. ✅ Backend migration — Supabase removed entirely; `@supabase/supabase-js` no longer a dependency
 
-`npm run build` produces a clean dist; `npm run lint` is clean. SPA fallback works in dev and prod.
+`npm run build` produces a clean dist; `npm run lint` is clean. `tsc -b` passes. SPA fallback works in dev and prod.
 
-See `docs/TESTING.md` for the manual test plan covering all of this.
+See `docs/TESTING.md` for the manual test plan covering all of this and `docs/CONVEX_BOOTSTRAP.md` for the first-time setup walkthrough.
 
-## What changed at planning vs reality
+## Architecture quick map
 
-| Plan said | What we actually did | Why |
-|---|---|---|
-| 5 Edge Functions (submit-square, approve, github-check, upload-zip, run-draw) | Zero — all logic client-side | Sister apps' trust model already does this; saves deployment complexity. Means trust is "soft" — anyone can hit the tables directly. |
-| Cloudflare R2 for ZIP storage | Supabase Storage for ZIPs (`code-zips` bucket) | One platform instead of two. Free tier easily covers the event. |
-| Gemini API for repo public-check | Plain GitHub REST API client-side | GitHub is authoritative; Gemini was redundant. |
-
-## What's next: the Convex migration
-
-We're moving the backend from Supabase to **Convex**. Reasons captured in chat history:
-- Real-time is the core feature; Convex's reactive `useQuery` removes the manual subscription plumbing in `useTeam`, `Scoreboard`, `ApprovalQueue`.
-- Business logic (the blue colour rule, the ZIP cleanliness check, the draw weighting) moves server-side via mutations, instead of being client-side honour code.
-- Single platform (functions + DB + storage + realtime) rather than Supabase tables + Storage + Realtime channels.
-
-### Files that will change
-
-| Today (Supabase) | After (Convex) |
+| Concern | Lives in |
 |---|---|
-| `supabase/migrations/*.sql` | `convex/schema.ts` |
-| `src/lib/submit.ts` | `convex/completions.ts` (mutations) |
-| `src/lib/admin.ts` | `convex/admin.ts` |
-| `src/lib/project.ts` | `convex/project.ts` (action for GitHub fetch) |
-| `src/lib/draw.ts` | `convex/draw.ts` (mutation) |
-| `src/lib/storage.ts` | replaced by Convex storage helpers |
-| `src/hooks/useTeam.ts` | `useQuery(api.teams.getByToken, ...)` |
-| `Scoreboard.tsx` realtime channel | `useQuery(api.scoreboard.bundle)` (auto-reactive) |
-| `ApprovalQueue.tsx` realtime channel | `useQuery(api.admin.pendingQueue)` (auto-reactive) |
-| `src/lib/supabase.ts` types | superseded by Convex auto-generated types |
+| Tables + indexes + validators | `convex/schema.ts` |
+| Read paths used by the app | `api.teams.*`, `api.squares.list`, `api.completions.listForTeam`, `api.scoreboard.bundle`, `api.gameState.get`, `api.codeSubmissions.getForTeam`, `api.photos.recent` |
+| Write paths | `api.completions.submit*` (one per verification kind), `api.admin.approveCompletion / rejectCompletion`, `api.gameState.setOpen`, `api.teams.create / regenerateToken`, `api.codeSubmissions.save`, `api.draw.run / clearWinners` |
+| File uploads | `api.upload.generateUploadUrl` → POST → save returned `storageId` in the relevant mutation |
+| External fetches | `api.githubCheck.check` (action — server-side fetch, no per-IP rate-limit issues) |
+| Trust enforcement | `assertAdmin(passcode)` + `assertOrganiser(name)` in `convex/admin.ts`, called by every privileged mutation |
 
-### Files that stay mostly the same
-
-- All page components in `src/pages/` — their data hooks change but the JSX is identical.
-- All UI components in `src/components/` — they take props, they don't care where data comes from.
-- `src/lib/lines.ts`, `src/lib/standings.ts`, `src/lib/qr.ts`, `src/lib/token.ts` — pure logic, no backend.
-- `src/lib/draw.ts` — `pickWinners` is pure; only the persistence call changes.
-
-### Migration approach
-
-We'll do this in steps so the app is buildable at each commit:
-
-1. Add the `convex` dependency and `convex/_generated/` placeholder, run `npx convex dev` once to bootstrap a deployment.
-2. Author `convex/schema.ts` matching today's tables.
-3. Port queries first (read-only) — `teams`, `bingoSquares`, `completions`, `gameState`, `photos`, `codeSubmissions`. Update `useTeam` to use Convex.
-4. Port mutations — `completions.submit*`, `admin.approve/reject`, `admin.openGame/closeGame`, `teams.createTeam/regenToken`, `draw.run`.
-5. Port file storage — replace `src/lib/storage.ts` calls with Convex storage upload URLs.
-6. Port the GitHub public check to a Convex action (server-side fetch, no rate limit per user IP).
-7. Delete Supabase code: `supabase/migrations/*`, `src/lib/supabase.ts` Supabase client, all `supabase.from(...)` calls.
-8. Update env vars, `.env.example`, `README.md`, `CLAUDE.md`.
-9. Re-run the manual test plan in `docs/TESTING.md`.
+Frontend never talks to GitHub directly anymore, never constructs storage URLs, never enforces the blue colour rule or the game-open lock — Convex does all of that.
 
 ## Known gaps + intern follow-ups
 
-These are not blockers for the migration; they're follow-up tasks once Convex is in place.
+Not blockers. Pick from the top.
 
 ### Functional follow-ups
-- [ ] **Teams seed script**: `/admin/teams` is currently manual. Write a `scripts/seed-teams.ts` that reads a CSV of `(name, colour)` and bulk-inserts.
+- [ ] **Teams seed script**: `/admin/teams` is currently manual. Write a `scripts/seed-teams.ts` that reads a CSV of `(name, colour)` and bulk-calls `api.teams.create`.
 - [ ] **Team-card print sheet**: design + print 40 cards with QR + team name + colour. Should be a small standalone page (HTML or React).
 - [ ] **CSV export**: from `/admin/game`, add a "Download standings CSV" button — useful for organisers and post-event analysis.
 - [ ] **Booth QR variants**: if there's >1 booth, parametrise `/booth/:boothName` and seed a square per booth.
+- [ ] **Mid-spin draw broadcast**: today, `api.draw.run` saves winners *before* the in-app spin animation reveals them, so the public scoreboard pops the winners banner a few seconds before the organiser's reveal completes. If you want the dramatic timing back, split the draw into two mutations: `previewDraw` (returns winners without saving) + `commitDraw` (persists). Have DrawSpin call preview, animate, then commit.
 
 ### UX polish
 - [ ] **Mobile bottom sheet** for square detail instead of full-page navigation — less jarring on phones.
@@ -89,13 +53,17 @@ These are not blockers for the migration; they're follow-up tasks once Convex is
 - [ ] **Confetti** on lucky-draw winners (CSS or `canvas-confetti`).
 - [ ] **Better empty states** on every admin tab (no teams yet, no pending, no completions).
 
+### Hardening
+- [ ] **Pass + verify the team token in submit mutations**: today, `submit*` mutations take a `teamId` directly. A malicious caller with the dev tools could submit on behalf of any team. Acceptable for a 40-team friendly event but tighten if this ever runs untrusted.
+- [ ] **ZIP cleanliness re-check server-side**: still happens client-side via JSZip before upload. A modified client could skip the check. Add an action that re-inspects after upload using the storageId.
+
 ### Testing
 - [ ] **E2E with Playwright** for the team flow + admin approve flow. Currently we only have a manual checklist.
 - [ ] Test on **iOS Safari (real device)** specifically for QR camera + photo capture — desktop browser sims aren't a faithful proxy.
 - [ ] Load test: 200 simulated concurrent connections to scoreboard + 40 simultaneous submissions.
 
 ### Documentation
-- [ ] Add screenshots / a 30-second screen-recording to `README.md`.
+- [ ] Add screenshots / a 30-second screen-recording to `README.md`. (Static screenshots already produced — see /tmp/codeexp_screenshots in chat history.)
 - [ ] Document the printed-QR card design and physical setup procedure (which mentor hands out cards, where the booth poster goes).
 
 ## Open questions for the team
@@ -109,5 +77,6 @@ These are not blockers for the migration; they're follow-up tasks once Convex is
 
 - Architecture / data model questions → `CLAUDE.md`
 - "How do I run X?" → `README.md`
+- "How do I bring up Convex from scratch?" → `docs/CONVEX_BOOTSTRAP.md`
 - "Does feature Y still work?" → run `docs/TESTING.md` end-to-end
 - Anything else → ping YJ
