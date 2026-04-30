@@ -1,18 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
+import { useMutation, useQuery } from 'convex/react'
 import AdminLayout from '../../components/AdminLayout'
-import { isOrganiser, logMentorAction } from '../../lib/admin'
-import { pickWinners } from '../../lib/draw'
+import { api } from '../../../convex/_generated/api'
+import { isOrganiser } from '../../lib/admin'
 import { computeStandings, type Standing } from '../../lib/standings'
-import {
-  supabase,
-  type BingoSquare,
-  type CodeSubmission,
-  type DrawWinner,
-  type GameState,
-  type SquareCompletion,
-  type Team,
-  type TeamColour,
-} from '../../lib/supabase'
+import type { DrawWinner, Team, TeamColour, TeamId } from '../../lib/types'
 
 const NUM_WINNERS = 3
 const SPIN_TICK_MS = 70
@@ -30,7 +22,7 @@ export default function DrawSpin() {
   return (
     <AdminLayout>
       {(creds) =>
-        isOrganiser(creds.name) ? <Draw mentorName={creds.name} /> : <NotOrganiser />
+        isOrganiser(creds.name) ? <Draw mentorName={creds.name} passcode={creds.passcode} /> : <NotOrganiser />
       }
     </AdminLayout>
   )
@@ -47,55 +39,49 @@ function NotOrganiser() {
   )
 }
 
-type Phase = 'idle' | 'spinning' | 'revealed' | 'saving' | 'done' | 'error'
+type Phase = 'idle' | 'spinning' | 'revealed' | 'done' | 'error'
 
-function Draw({ mentorName }: { mentorName: string }) {
-  const [standings, setStandings] = useState<Standing[]>([])
-  const [game, setGame] = useState<GameState | null>(null)
+function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }) {
+  const bundle = useQuery(api.scoreboard.bundle)
+  const runDraw = useMutation(api.draw.run)
+  const clearWinners = useMutation(api.draw.clearWinners)
+
   const [phase, setPhase] = useState<Phase>('idle')
-  const [revealedIds, setRevealedIds] = useState<string[]>([])
+  const [revealedIds, setRevealedIds] = useState<TeamId[]>([])
   const [tickName, setTickName] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const teamsById = useRef<Map<string, Team>>(new Map())
 
-  const refresh = useCallback(async () => {
-    const [teamsRes, squaresRes, compsRes, subsRes, gameRes] = await Promise.all([
-      supabase.from('teams').select('*'),
-      supabase.from('bingo_squares').select('*'),
-      supabase.from('square_completions').select('*'),
-      supabase.from('code_submissions').select('team_id, zip_clean'),
-      supabase.from('game_state').select('*').eq('id', 1).maybeSingle(),
-    ])
-    const teams = (teamsRes.data ?? []) as Team[]
-    teamsById.current = new Map(teams.map((t) => [t.id, t]))
-    const squares = (squaresRes.data ?? []) as BingoSquare[]
-    const comps = (compsRes.data ?? []) as SquareCompletion[]
-    const subs = (subsRes.data ?? []) as Pick<CodeSubmission, 'team_id' | 'zip_clean'>[]
-    setStandings(computeStandings(teams, squares, comps, subs))
-    setGame((gameRes.data ?? null) as GameState | null)
-  }, [])
+  if (bundle === undefined) {
+    return <p className="text-sm text-bh-dim bh-display">Loading…</p>
+  }
 
-  useEffect(() => {
-    refresh()
-  }, [refresh])
-
+  const teamsById = new Map<TeamId, Team>(bundle.teams.map((t) => [t._id, t] as const))
+  const standings: Standing[] = computeStandings(
+    bundle.teams,
+    bundle.squares,
+    bundle.completions,
+    bundle.submissions,
+  )
   const eligible = standings.filter((s) => s.entries > 0)
   const totalEntries = eligible.reduce((sum, s) => sum + s.entries, 0)
-  const existingWinners: DrawWinner[] = game?.draw_winners ?? []
+  const existingWinners: DrawWinner[] = bundle.game?.drawWinners ?? []
 
-  const runDraw = async () => {
+  const startDraw = async () => {
     setError(null)
     if (eligible.length < NUM_WINNERS) {
       setError(`Only ${eligible.length} eligible team(s). Need at least ${NUM_WINNERS} with one or more entries.`)
       return
     }
-    const winners = pickWinners(standings, NUM_WINNERS)
-    if (winners.length < NUM_WINNERS) {
-      setError("Couldn't pick enough unique winners.")
+    setRevealedIds([])
+    let winners: DrawWinner[]
+    try {
+      winners = await runDraw({ passcode, mentorName, count: NUM_WINNERS })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Draw failed.')
+      setPhase('error')
       return
     }
-    setRevealedIds([])
-    for (let i = 0; i < winners.length; i++) {
+    for (const w of winners) {
       setPhase('spinning')
       const start = Date.now()
       while (Date.now() - start < SPIN_DURATION_MS) {
@@ -103,39 +89,26 @@ function Draw({ mentorName }: { mentorName: string }) {
         setTickName(candidate.team.name)
         await sleep(SPIN_TICK_MS)
       }
-      const winnerTeam = teamsById.current.get(winners[i])
+      const winnerTeam = teamsById.get(w.teamId)
       setTickName(winnerTeam?.name ?? '???')
-      setRevealedIds((prev) => [...prev, winners[i]])
+      setRevealedIds((prev) => [...prev, w.teamId])
       setPhase('revealed')
       await sleep(REVEAL_HOLD_MS)
     }
-    setPhase('saving')
-    const payload: DrawWinner[] = winners.map((id, idx) => ({ team_id: id, prize_rank: idx + 1 }))
-    const { error: updateErr } = await supabase
-      .from('game_state')
-      .update({ draw_winners: payload, draw_at: new Date().toISOString() })
-      .eq('id', 1)
-    if (updateErr) {
-      setError(updateErr.message)
-      setPhase('error')
-      return
-    }
-    await logMentorAction(mentorName, 'draw', null, { winners: payload })
     setPhase('done')
-    refresh()
   }
 
   const reset = async () => {
     if (!window.confirm('Clear the recorded winners? They will disappear from the scoreboard.')) return
-    const { error: updateErr } = await supabase.from('game_state').update({ draw_winners: null, draw_at: null }).eq('id', 1)
-    if (updateErr) {
-      setError(updateErr.message)
+    try {
+      await clearWinners({ passcode, mentorName })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Clear failed.')
       return
     }
     setRevealedIds([])
     setTickName(null)
     setPhase('idle')
-    refresh()
   }
 
   return (
@@ -172,7 +145,6 @@ function Draw({ mentorName }: { mentorName: string }) {
           {phase === 'revealed' && (
             <div className="bh-display text-6xl font-extrabold text-bh-lime drop-shadow-[0_0_24px_rgba(166,251,0,0.85)]">★ {tickName} ★</div>
           )}
-          {phase === 'saving' && <p className="bh-display tracking-widest text-bh-dim animate-pulse">SAVING…</p>}
           {phase === 'done' && (
             <div className="space-y-2">
               <div className="bh-display text-4xl font-extrabold text-bh-lime">All winners drawn!</div>
@@ -188,8 +160,8 @@ function Draw({ mentorName }: { mentorName: string }) {
 
       <div className="flex items-center gap-3">
         <button
-          onClick={runDraw}
-          disabled={phase === 'spinning' || phase === 'revealed' || phase === 'saving'}
+          onClick={startDraw}
+          disabled={phase === 'spinning' || phase === 'revealed'}
           className="bh-btn-primary disabled:opacity-50 disabled:hover:bg-bh-lime disabled:hover:shadow-none"
         >
           {existingWinners.length > 0 ? 'Re-draw' : `Draw ${NUM_WINNERS} winners`}
@@ -206,14 +178,14 @@ function Draw({ mentorName }: { mentorName: string }) {
           <h3 className="bh-display text-xs tracking-widest text-bh-lime mb-2">WINNERS</h3>
           <ol className="space-y-2">
             {(revealedIds.length > 0
-              ? revealedIds.map((id, idx) => ({ team_id: id, prize_rank: idx + 1 }))
+              ? revealedIds.map((id, idx) => ({ teamId: id, prizeRank: idx + 1 }))
               : existingWinners
             ).map((w) => {
-              const t = teamsById.current.get(w.team_id)
+              const t = teamsById.get(w.teamId)
               if (!t) return null
               return (
-                <li key={w.team_id} className="flex items-center gap-3 bh-card p-3">
-                  <span className="bh-display text-2xl font-extrabold text-bh-lime">#{w.prize_rank}</span>
+                <li key={w.teamId} className="flex items-center gap-3 bh-card p-3">
+                  <span className="bh-display text-2xl font-extrabold text-bh-lime">#{w.prizeRank}</span>
                   <span className={['inline-block w-4 h-4 rounded-full', swatchClass[t.colour]].join(' ')} />
                   <span className="bh-display text-base font-bold text-white">{t.name}</span>
                 </li>

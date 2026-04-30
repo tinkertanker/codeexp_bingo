@@ -1,22 +1,26 @@
 import { useEffect, useState } from 'react'
+import { useAction, useMutation, useQuery } from 'convex/react'
 import { Link, useParams } from 'react-router-dom'
+import { api } from '../../convex/_generated/api'
 import { useTeam } from '../hooks/useTeam'
-import {
-  checkGithubRepo,
-  inspectZip,
-  loadSubmission,
-  saveSubmission,
-  uploadZip,
-  type GithubCheck,
-  type ZipCheck,
-} from '../lib/project'
-import type { CodeSubmission } from '../lib/supabase'
+import { inspectZip, type ZipCheck } from '../lib/project'
+import { uploadToConvex } from '../lib/storage'
+import type { StorageId } from '../lib/types'
+
+type GithubCheck =
+  | { ok: true; isPublic: true; defaultBranch: string; description: string | null }
+  | { ok: false; isPublic: false; reason: string }
 
 export default function ProjectSubmit() {
   const { token } = useParams()
   const { status, data } = useTeam(token)
+  const teamId = data?.team._id
+  const existing = useQuery(api.codeSubmissions.getForTeam, teamId ? { teamId } : 'skip')
 
-  const [existing, setExisting] = useState<CodeSubmission | null>(null)
+  const checkRepoAction = useAction(api.githubCheck.check)
+  const generateUploadUrl = useMutation(api.upload.generateUploadUrl)
+  const saveSubmission = useMutation(api.codeSubmissions.save)
+
   const [githubUrl, setGithubUrl] = useState('')
   const [githubCheck, setGithubCheck] = useState<GithubCheck | null>(null)
   const [checkingRepo, setCheckingRepo] = useState(false)
@@ -28,13 +32,8 @@ export default function ProjectSubmit() {
   const [savedAt, setSavedAt] = useState<Date | null>(null)
 
   useEffect(() => {
-    if (status !== 'ok' || !data) return
-    loadSubmission(data.team.id).then((sub) => {
-      if (!sub) return
-      setExisting(sub as CodeSubmission)
-      if (sub.github_url) setGithubUrl(sub.github_url as string)
-    })
-  }, [status, data])
+    if (existing?.githubUrl && !githubUrl) setGithubUrl(existing.githubUrl)
+  }, [existing, githubUrl])
 
   if (status === 'loading') return <div className="p-6 text-bh-dim bh-display text-xs">Loading…</div>
   if (status !== 'ok' || !data) return <div className="p-6 text-bh-magenta">Team not found.</div>
@@ -43,7 +42,8 @@ export default function ProjectSubmit() {
     if (!githubUrl) return
     setCheckingRepo(true)
     setError(null)
-    setGithubCheck(await checkGithubRepo(githubUrl))
+    const result = await checkRepoAction({ url: githubUrl })
+    setGithubCheck(result)
     setCheckingRepo(false)
   }
 
@@ -63,9 +63,10 @@ export default function ProjectSubmit() {
     }
     setSubmitting(true)
     setError(null)
-    let zip_storage_path: string | null = existing?.zip_storage_path ?? null
-    let zip_clean: boolean | null = existing?.zip_clean ?? null
-    let zip_check_response: unknown = existing?.zip_check_response ?? null
+    let zipStorageId: StorageId | undefined = existing?.zipStorageId
+    let zipFilename: string | undefined = existing?.zipFilename
+    let zipClean: boolean | undefined = existing?.zipClean
+    let zipCheckResponse: unknown = existing?.zipCheckResponse
 
     if (zipFile) {
       if (!zipCheck) {
@@ -78,40 +79,42 @@ export default function ProjectSubmit() {
         setSubmitting(false)
         return
       }
-      const upload = await uploadZip(data.team.id, zipFile)
+      const url = await generateUploadUrl({})
+      const upload = await uploadToConvex(url, zipFile)
       if (!upload.ok) {
         setError(upload.reason)
         setSubmitting(false)
         return
       }
-      zip_storage_path = upload.path
-      zip_clean = true
-      zip_check_response = zipCheck
+      zipStorageId = upload.storageId
+      zipFilename = zipFile.name
+      zipClean = true
+      zipCheckResponse = zipCheck
     }
 
-    const r = await saveSubmission({
-      team_id: data.team.id,
-      github_url: githubUrl.trim(),
-      github_is_public: githubCheck.isPublic,
-      github_check_response: githubCheck,
-      zip_storage_path,
-      zip_clean,
-      zip_check_response,
-    })
-    if (!r.ok) {
-      setError(r.reason ?? 'Save failed.')
+    try {
+      await saveSubmission({
+        teamId: data.team._id,
+        githubUrl: githubUrl.trim(),
+        githubIsPublic: githubCheck.isPublic,
+        githubCheckResponse: githubCheck,
+        zipStorageId,
+        zipFilename,
+        zipClean,
+        zipCheckResponse,
+      })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Save failed.')
       setSubmitting(false)
       return
     }
     setSavedAt(new Date())
     setSubmitting(false)
-    const updated = await loadSubmission(data.team.id)
-    if (updated) setExisting(updated as CodeSubmission)
     setZipFile(null)
     setZipCheck(null)
   }
 
-  const bonusEarned = existing?.zip_clean === true
+  const bonusEarned = existing?.zipClean === true
 
   return (
     <div className="min-h-screen p-4">
@@ -161,7 +164,7 @@ export default function ProjectSubmit() {
             We'll reject ZIPs that contain <code className="font-mono">node_modules</code>, <code className="font-mono">.git</code>, <code className="font-mono">.venv</code>, or single
             files larger than 50 MB.
           </p>
-          {existing?.zip_clean && !zipFile && (
+          {existing?.zipClean && !zipFile && (
             <div className="p-2 rounded bg-bh-lime/10 text-bh-lime ring-1 ring-bh-lime/40 text-xs">
               Clean ZIP already on file — bonus entry secured.
             </div>

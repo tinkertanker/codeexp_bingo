@@ -1,20 +1,18 @@
-import { supabase } from './supabase'
+import type { StorageId } from './types'
 
-const PHOTO_BUCKET = 'photos'
-
-export type UploadResult = { ok: true; path: string } | { ok: false; reason: string }
-
-export async function uploadPhoto(teamId: string, squareId: string, file: File): Promise<UploadResult> {
-  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().slice(0, 5)
-  const path = `${teamId}/${squareId}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`
-  const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, file, {
-    contentType: file.type || 'image/jpeg',
-    upsert: false,
-  })
-  if (error) return { ok: false, reason: error.message }
-  return { ok: true, path }
-}
-
-export function publicPhotoUrl(path: string): string {
-  return supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl
+// Uploads a Blob/File to Convex storage given an upload URL produced by `api.upload.generateUploadUrl`.
+// Returns the storageId Convex assigns, which then gets handed to whichever mutation persists it.
+export async function uploadToConvex(uploadUrl: string, file: File): Promise<{ ok: true; storageId: StorageId } | { ok: false; reason: string }> {
+  try {
+    const res = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      body: file,
+    })
+    if (!res.ok) return { ok: false, reason: `Upload failed: ${res.status}` }
+    const { storageId } = (await res.json()) as { storageId: StorageId }
+    return { ok: true, storageId }
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : String(e) }
+  }
 }

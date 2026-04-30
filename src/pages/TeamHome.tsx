@@ -7,7 +7,7 @@ import { clearTeamToken } from '../lib/token'
 
 export default function TeamHome() {
   const { token } = useParams()
-  const { status, data, error } = useTeam(token)
+  const { status, data } = useTeam(token)
 
   if (status === 'loading') {
     return <div className="p-6 text-bh-dim bh-display text-xs">Loading…</div>
@@ -33,14 +33,14 @@ export default function TeamHome() {
     )
   }
 
-  if (status === 'error' || !data) {
-    return <div className="p-6 text-bh-magenta">Error: {error}</div>
+  if (!data) {
+    return <div className="p-6 text-bh-magenta">Could not load team data.</div>
   }
 
   const completedPositions = new Set(
     data.completions
       .filter((c) => c.status === 'approved')
-      .map((c) => data.squares.find((s) => s.id === c.square_id)?.position)
+      .map((c) => data.squares.find((s) => s._id === c.squareId)?.position)
       .filter((p): p is number => typeof p === 'number'),
   )
   const lines = countCompletedLines(completedPositions)

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import type { Team, TeamColour } from '../lib/supabase'
+import type { Team, TeamColour } from '../lib/types'
 
 const colourSwatch: Record<TeamColour, string> = {
   red: 'bg-team-red shadow-neon-magenta',

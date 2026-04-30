@@ -1,95 +1,50 @@
-import { useCallback, useEffect, useState } from 'react'
-import { supabase, type BingoSquare, type GameState, type SquareCompletion, type Team } from '../lib/supabase'
+import { useEffect } from 'react'
+import { useQuery } from 'convex/react'
+import { api } from '../../convex/_generated/api'
 import { saveTeamToken } from '../lib/token'
+import type { BingoSquare, GameState, SquareCompletion, Team } from '../lib/types'
 
 export type TeamData = {
   team: Team
   squares: BingoSquare[]
   completions: SquareCompletion[]
   gameOpen: boolean
+  game: GameState | null
 }
 
-type Status = 'loading' | 'ok' | 'not_found' | 'error'
+type Status = 'loading' | 'ok' | 'not_found'
 
 export function useTeam(token: string | undefined) {
-  const [status, setStatus] = useState<Status>('loading')
-  const [data, setData] = useState<TeamData | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [refreshKey, setRefreshKey] = useState(0)
+  const team = useQuery(api.teams.getByToken, token ? { token } : 'skip')
+  const squares = useQuery(api.squares.list)
+  const completions = useQuery(
+    api.completions.listForTeam,
+    team ? { teamId: team._id } : 'skip',
+  )
+  const game = useQuery(api.gameState.get)
 
-  const refresh = useCallback(() => setRefreshKey((k) => k + 1), [])
-
+  // Persist the token for return-visits whenever we successfully resolve a team.
   useEffect(() => {
-    if (!token) {
-      setStatus('not_found')
-      return
-    }
-    let cancelled = false
-    ;(async () => {
-      setStatus('loading')
-      setError(null)
-      const { data: team, error: teamErr } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('token', token)
-        .maybeSingle()
-      if (cancelled) return
-      if (teamErr) {
-        setStatus('error')
-        setError(teamErr.message)
-        return
-      }
-      if (!team) {
-        setStatus('not_found')
-        return
-      }
-      saveTeamToken(token)
+    if (team && token) saveTeamToken(token)
+  }, [team, token])
 
-      const [squaresRes, completionsRes, gameRes] = await Promise.all([
-        supabase.from('bingo_squares').select('*').order('position'),
-        supabase.from('square_completions').select('*').eq('team_id', team.id),
-        supabase.from('game_state').select('is_open').eq('id', 1).maybeSingle(),
-      ])
-      if (cancelled) return
-      const firstError = [squaresRes, completionsRes, gameRes].find((r) => r.error)?.error
-      if (firstError) {
-        setStatus('error')
-        setError(firstError.message)
-        return
-      }
-      setData({
-        team: team as Team,
-        squares: (squaresRes.data ?? []) as BingoSquare[],
-        completions: (completionsRes.data ?? []) as SquareCompletion[],
-        gameOpen: ((gameRes.data ?? null) as Pick<GameState, 'is_open'> | null)?.is_open ?? false,
-      })
-      setStatus('ok')
-    })()
-    return () => {
-      cancelled = true
+  let status: Status = 'loading'
+  let data: TeamData | null = null
+  if (!token || team === null) {
+    status = 'not_found'
+  } else if (team !== undefined && squares !== undefined && completions !== undefined && game !== undefined) {
+    status = 'ok'
+    data = {
+      team,
+      squares: [...squares].sort((a, b) => a.position - b.position),
+      completions,
+      gameOpen: game?.isOpen ?? false,
+      game: game ?? null,
     }
-  }, [token, refreshKey])
+  }
 
-  useEffect(() => {
-    if (!data?.team.id) return
-    const teamId = data.team.id
-    const channel = supabase
-      .channel(`team:${teamId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'square_completions', filter: `team_id=eq.${teamId}` },
-        () => refresh(),
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'game_state' },
-        () => refresh(),
-      )
-      .subscribe()
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [data?.team.id, refresh])
+  // No-op kept for callers that want to imperatively refresh; Convex queries are reactive.
+  const refresh = () => {}
 
-  return { status, data, error, refresh }
+  return { status, data, refresh }
 }

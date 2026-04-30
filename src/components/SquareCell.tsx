@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import type { BingoSquare, CompletionStatus, SquareCategory } from '../lib/supabase'
+import type { BingoSquare, CompletionStatus, SquareCategory } from '../lib/types'
 
 const categoryClasses: Record<SquareCategory, { bg: string; ring: string; ink: string }> = {
   orange: { bg: 'bg-bingo-orange-soft', ring: 'ring-bingo-orange/50',  ink: 'text-orange-200' },

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useConvex, useMutation } from 'convex/react'
 import { Link, useNavigate } from 'react-router-dom'
-import { submitBoothQr } from '../lib/submit'
-import { supabase, type BingoSquare, type Team } from '../lib/supabase'
+import { api } from '../../convex/_generated/api'
 import { loadTeamToken } from '../lib/token'
+import type { Team } from '../lib/types'
 
 type Phase = 'init' | 'no_token' | 'submitting' | 'already_done' | 'done' | 'error'
 
@@ -11,6 +12,8 @@ export default function BoothDeepfake() {
   const [error, setError] = useState<string | null>(null)
   const [team, setTeam] = useState<Team | null>(null)
   const navigate = useNavigate()
+  const convex = useConvex()
+  const submitBoothQr = useMutation(api.completions.submitBoothQr)
 
   useEffect(() => {
     let cancelled = false
@@ -20,55 +23,48 @@ export default function BoothDeepfake() {
         setPhase('no_token')
         return
       }
-      const teamRes = await supabase.from('teams').select('*').eq('token', token).maybeSingle()
+      const t = await convex.query(api.teams.getByToken, { token })
       if (cancelled) return
-      if (teamRes.error || !teamRes.data) {
+      if (!t) {
         setPhase('no_token')
         return
       }
-      const t = teamRes.data as Team
       setTeam(t)
 
-      const sqRes = await supabase
-        .from('bingo_squares')
-        .select('*')
-        .eq('verification_kind', 'booth_qr')
-        .maybeSingle()
+      const squares = await convex.query(api.squares.list, {})
       if (cancelled) return
-      if (sqRes.error || !sqRes.data) {
-        setError(sqRes.error?.message ?? 'Booth square not configured.')
+      const square = squares.find((s) => s.verificationKind === 'booth_qr')
+      if (!square) {
+        setError('Booth square not configured.')
         setPhase('error')
         return
       }
-      const square = sqRes.data as BingoSquare
 
-      const existingRes = await supabase
-        .from('square_completions')
-        .select('status')
-        .eq('team_id', t.id)
-        .eq('square_id', square.id)
-        .maybeSingle()
+      const completions = await convex.query(api.completions.listForTeam, { teamId: t._id })
       if (cancelled) return
-      if (existingRes.data?.status === 'approved') {
+      const existing = completions.find((c) => c.squareId === square._id)
+      if (existing?.status === 'approved') {
         setPhase('already_done')
         return
       }
 
       setPhase('submitting')
-      const r = await submitBoothQr(t, square)
-      if (cancelled) return
-      if (!r.ok) {
-        setError(r.reason)
+      try {
+        await submitBoothQr({ teamId: t._id, squareId: square._id })
+      } catch (e) {
+        if (cancelled) return
+        setError(e instanceof Error ? e.message : 'Booth claim failed.')
         setPhase('error')
         return
       }
+      if (cancelled) return
       setPhase('done')
       setTimeout(() => navigate(`/t/${t.token}`, { replace: true }), 1500)
     })()
     return () => {
       cancelled = true
     }
-  }, [navigate])
+  }, [convex, navigate, submitBoothQr])
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6">

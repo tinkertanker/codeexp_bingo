@@ -1,4 +1,4 @@
-import type { BingoSquare, SquareCompletion } from '../lib/supabase'
+import type { BingoSquare, SquareCompletion } from '../lib/types'
 import SquareCell from './SquareCell'
 
 export type BingoGridProps = {
@@ -10,7 +10,7 @@ export type BingoGridProps = {
 export default function BingoGrid({ squares, completions, hrefForSquare }: BingoGridProps) {
   const completionByPosition = new Map<number, SquareCompletion>()
   for (const c of completions) {
-    const sq = squares.find((s) => s.id === c.square_id)
+    const sq = squares.find((s) => s._id === c.squareId)
     if (sq) completionByPosition.set(sq.position, c)
   }
 
@@ -22,7 +22,7 @@ export default function BingoGrid({ squares, completions, hrefForSquare }: Bingo
         const completion = completionByPosition.get(sq.position)
         return (
           <SquareCell
-            key={sq.id}
+            key={sq._id}
             square={sq}
             status={completion?.status ?? null}
             href={hrefForSquare(sq)}

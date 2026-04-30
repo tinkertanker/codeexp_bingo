@@ -1,5 +1,5 @@
 import type { Standing } from '../lib/standings'
-import type { TeamColour } from '../lib/supabase'
+import type { TeamColour, TeamId } from '../lib/types'
 
 const swatchClass: Record<TeamColour, string> = {
   red: 'bg-team-red',
@@ -10,7 +10,7 @@ const swatchClass: Record<TeamColour, string> = {
 
 export type LeaderboardProps = {
   standings: Standing[]
-  highlightTeamIds?: Set<string>
+  highlightTeamIds?: Set<TeamId>
   rowsPerColumn?: number
 }
 
@@ -28,10 +28,10 @@ export default function Leaderboard({ standings, highlightTeamIds, rowsPerColumn
         <ol key={i} className="space-y-1">
           {col.map((s, idx) => {
             const rank = i * rowsPerColumn + idx + 1
-            const highlighted = highlightTeamIds?.has(s.team.id)
+            const highlighted = highlightTeamIds?.has(s.team._id)
             return (
               <li
-                key={s.team.id}
+                key={s.team._id}
                 className={[
                   'flex items-center gap-2 rounded px-2 py-1.5 ring-1 transition',
                   highlighted

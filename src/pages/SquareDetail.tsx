@@ -1,23 +1,19 @@
 import { useState } from 'react'
+import { useConvex, useMutation } from 'convex/react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import PhotoCapture from '../components/PhotoCapture'
 import QRScanner from '../components/QRScanner'
+import { api } from '../../convex/_generated/api'
 import { useTeam } from '../hooks/useTeam'
 import { parseTeamToken } from '../lib/qr'
-import {
-  submitIgUrl,
-  submitPhotoAuto,
-  submitPhotoMentor,
-  submitPhotoWithTeam,
-  submitScanTeam,
-  submitScanTeamWithAnswer,
-  type SubmitResult,
-} from '../lib/submit'
-import { supabase, type BingoSquare, type Team } from '../lib/supabase'
+import { uploadToConvex } from '../lib/storage'
+import type { BingoSquare, Team } from '../lib/types'
+
+type Outcome = { ok: true; pending: boolean } | { ok: false; reason: string }
 
 export default function SquareDetail() {
   const { token, position } = useParams()
-  const { status, data, refresh } = useTeam(token)
+  const { status, data } = useTeam(token)
   const navigate = useNavigate()
 
   if (status === 'loading') return <div className="p-6 text-bh-dim bh-display text-xs">Loading…</div>
@@ -26,14 +22,13 @@ export default function SquareDetail() {
   const square = data.squares.find((s) => s.position === Number(position))
   if (!square) return <div className="p-6 text-bh-magenta">Square not found.</div>
 
-  const existing = data.completions.find((c) => c.square_id === square.id)
+  const existing = data.completions.find((c) => c.squareId === square._id)
   const completed = existing?.status === 'approved'
   const pending = existing?.status === 'pending'
 
-  const finishSubmit = async (resultPromise: Promise<SubmitResult>): Promise<{ ok: boolean; reason?: string }> => {
+  const finishSubmit = async (resultPromise: Promise<Outcome>): Promise<{ ok: boolean; reason?: string }> => {
     const r = await resultPromise
     if (!r.ok) return { ok: false, reason: r.reason }
-    refresh()
     navigate(`/t/${data.team.token}`, { replace: true })
     return { ok: true }
   }
@@ -72,11 +67,11 @@ export default function SquareDetail() {
 type VerifProps = {
   team: Team
   square: BingoSquare
-  onSubmit: (resultPromise: Promise<SubmitResult>) => Promise<{ ok: boolean; reason?: string }>
+  onSubmit: (resultPromise: Promise<Outcome>) => Promise<{ ok: boolean; reason?: string }>
 }
 
 function Verification({ team, square, onSubmit }: VerifProps) {
-  switch (square.verification_kind) {
+  switch (square.verificationKind) {
     case 'scan_team':
       return <ScanTeamFlow team={team} square={square} onSubmit={onSubmit} />
     case 'scan_team_with_answer':
@@ -94,13 +89,24 @@ function Verification({ team, square, onSubmit }: VerifProps) {
   }
 }
 
-async function lookupTeamByToken(rawScan: string): Promise<{ ok: true; team: Team } | { ok: false; reason: string }> {
-  const tk = parseTeamToken(rawScan)
-  if (!tk) return { ok: false, reason: "That doesn't look like a team QR." }
-  const { data, error } = await supabase.from('teams').select('*').eq('token', tk).maybeSingle()
-  if (error) return { ok: false, reason: error.message }
-  if (!data) return { ok: false, reason: 'No team found for that QR.' }
-  return { ok: true, team: data as Team }
+function useTeamLookup() {
+  const convex = useConvex()
+  return async (rawScan: string): Promise<{ ok: true; team: Team } | { ok: false; reason: string }> => {
+    const tk = parseTeamToken(rawScan)
+    if (!tk) return { ok: false, reason: "That doesn't look like a team QR." }
+    const team = await convex.query(api.teams.getByToken, { token: tk })
+    if (!team) return { ok: false, reason: 'No team found for that QR.' }
+    return { ok: true, team }
+  }
+}
+
+function asReason(e: unknown): string {
+  return e instanceof Error ? e.message : String(e)
+}
+
+async function uploadPhoto(generateUploadUrl: () => Promise<string>, file: File) {
+  const url = await generateUploadUrl()
+  return uploadToConvex(url, file)
 }
 
 function ScanTeamFlow({ team, square, onSubmit }: VerifProps) {
@@ -108,11 +114,13 @@ function ScanTeamFlow({ team, square, onSubmit }: VerifProps) {
   const [scannedTeam, setScannedTeam] = useState<Team | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const lookup = useTeamLookup()
+  const submitScanTeam = useMutation(api.completions.submitScanTeam)
 
   const onScan = async (text: string) => {
     if (submitting || scannedTeam) return
     setScanning(false)
-    const r = await lookupTeamByToken(text)
+    const r = await lookup(text)
     if (!r.ok) return setError(r.reason)
     setError(null)
     setScannedTeam(r.team)
@@ -122,7 +130,11 @@ function ScanTeamFlow({ team, square, onSubmit }: VerifProps) {
     if (!scannedTeam) return
     setSubmitting(true)
     setError(null)
-    const result = await onSubmit(submitScanTeam(team, square, scannedTeam))
+    const result = await onSubmit(
+      submitScanTeam({ teamId: team._id, squareId: square._id, scannedTeamId: scannedTeam._id })
+        .then<Outcome>(() => ({ ok: true, pending: false }))
+        .catch<Outcome>((e) => ({ ok: false, reason: asReason(e) })),
+    )
     if (!result.ok) {
       setError(result.reason ?? 'Submission failed.')
       setSubmitting(false)
@@ -169,13 +181,15 @@ function ScanTeamWithAnswerFlow({ team, square, onSubmit }: VerifProps) {
   const [answer, setAnswer] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const lookup = useTeamLookup()
+  const submitScanTeamWithAnswer = useMutation(api.completions.submitScanTeamWithAnswer)
 
   const onScan = async (text: string) => {
     if (submitting || scannedTeam) return
     setScanning(false)
-    const r = await lookupTeamByToken(text)
+    const r = await lookup(text)
     if (!r.ok) return setError(r.reason)
-    if (r.team.id === team.id) {
+    if (r.team._id === team._id) {
       setError("Blue squares need to be completed with another team — you can't scan yourself here.")
       return
     }
@@ -191,7 +205,16 @@ function ScanTeamWithAnswerFlow({ team, square, onSubmit }: VerifProps) {
     }
     setSubmitting(true)
     setError(null)
-    const result = await onSubmit(submitScanTeamWithAnswer(team, square, scannedTeam, answer))
+    const result = await onSubmit(
+      submitScanTeamWithAnswer({
+        teamId: team._id,
+        squareId: square._id,
+        scannedTeamId: scannedTeam._id,
+        textAnswer: answer.trim(),
+      })
+        .then<Outcome>(() => ({ ok: true, pending: false }))
+        .catch<Outcome>((e) => ({ ok: false, reason: asReason(e) })),
+    )
     if (!result.ok) {
       setError(result.reason ?? 'Submission failed.')
       setSubmitting(false)
@@ -251,11 +274,14 @@ function PhotoWithTeamFlow({ team, square, onSubmit }: VerifProps) {
   const [file, setFile] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const lookup = useTeamLookup()
+  const generateUploadUrl = useMutation(api.upload.generateUploadUrl)
+  const submitPhotoWithTeam = useMutation(api.completions.submitPhotoWithTeam)
 
   const onScan = async (text: string) => {
     if (submitting || scannedTeam) return
     setScanning(false)
-    const r = await lookupTeamByToken(text)
+    const r = await lookup(text)
     if (!r.ok) return setError(r.reason)
     setError(null)
     setScannedTeam(r.team)
@@ -268,7 +294,22 @@ function PhotoWithTeamFlow({ team, square, onSubmit }: VerifProps) {
     }
     setSubmitting(true)
     setError(null)
-    const result = await onSubmit(submitPhotoWithTeam(team, square, scannedTeam, file))
+    const upload = await uploadPhoto(generateUploadUrl, file)
+    if (!upload.ok) {
+      setError(upload.reason)
+      setSubmitting(false)
+      return
+    }
+    const result = await onSubmit(
+      submitPhotoWithTeam({
+        teamId: team._id,
+        squareId: square._id,
+        scannedTeamId: scannedTeam._id,
+        photoStorageId: upload.storageId,
+      })
+        .then<Outcome>(() => ({ ok: true, pending: false }))
+        .catch<Outcome>((e) => ({ ok: false, reason: asReason(e) })),
+    )
     if (!result.ok) {
       setError(result.reason ?? 'Submission failed.')
       setSubmitting(false)
@@ -308,13 +349,26 @@ function SimplePhotoFlow({ team, square, onSubmit, kind }: VerifProps & { kind: 
   const [file, setFile] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const generateUploadUrl = useMutation(api.upload.generateUploadUrl)
+  const submitPhotoAuto = useMutation(api.completions.submitPhotoAuto)
+  const submitPhotoMentor = useMutation(api.completions.submitPhotoMentor)
 
   const submit = async () => {
     if (!file) return setError('Add a photo first.')
     setSubmitting(true)
     setError(null)
-    const promise = kind === 'auto' ? submitPhotoAuto(team, square, file) : submitPhotoMentor(team, square, file)
-    const result = await onSubmit(promise)
+    const upload = await uploadPhoto(generateUploadUrl, file)
+    if (!upload.ok) {
+      setError(upload.reason)
+      setSubmitting(false)
+      return
+    }
+    const fn = kind === 'auto' ? submitPhotoAuto : submitPhotoMentor
+    const result = await onSubmit(
+      fn({ teamId: team._id, squareId: square._id, photoStorageId: upload.storageId })
+        .then<Outcome>(() => ({ ok: true, pending: kind === 'mentor' }))
+        .catch<Outcome>((e) => ({ ok: false, reason: asReason(e) })),
+    )
     if (!result.ok) {
       setError(result.reason ?? 'Submission failed.')
       setSubmitting(false)
@@ -339,11 +393,16 @@ function IgUrlFlow({ team, square, onSubmit }: VerifProps) {
   const [url, setUrl] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const submitIgUrl = useMutation(api.completions.submitIgUrl)
 
   const submit = async () => {
     setSubmitting(true)
     setError(null)
-    const result = await onSubmit(submitIgUrl(team, square, url))
+    const result = await onSubmit(
+      submitIgUrl({ teamId: team._id, squareId: square._id, igUrl: url })
+        .then<Outcome>(() => ({ ok: true, pending: true }))
+        .catch<Outcome>((e) => ({ ok: false, reason: asReason(e) })),
+    )
     if (!result.ok) {
       setError(result.reason ?? 'Submission failed.')
       setSubmitting(false)

@@ -1,9 +1,10 @@
-import { publicPhotoUrl } from '../lib/storage'
-import type { Photo, Team } from '../lib/supabase'
+import type { Photo, Team, TeamId } from '../lib/types'
+
+export type PhotoWithUrl = Photo & { url: string | null }
 
 export type PhotoWallProps = {
-  photos: Photo[]
-  teamsById: Map<string, Team>
+  photos: PhotoWithUrl[]
+  teamsById: Map<TeamId, Team>
   cap?: number
 }
 
@@ -19,15 +20,17 @@ export default function PhotoWall({ photos, teamsById, cap = 18 }: PhotoWallProp
   return (
     <div className="grid grid-cols-3 gap-3 h-full auto-rows-fr">
       {recent.map((p) => {
-        const team = teamsById.get(p.team_id)
+        const team = teamsById.get(p.teamId)
         return (
-          <figure key={p.id} className="relative aspect-square rounded-lg overflow-hidden ring-1 ring-white/10 bg-black/20">
-            <img
-              src={publicPhotoUrl(p.storage_path)}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-              loading="lazy"
-            />
+          <figure key={p._id} className="relative aspect-square rounded-lg overflow-hidden ring-1 ring-white/10 bg-black/20">
+            {p.url && (
+              <img
+                src={p.url}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+                loading="lazy"
+              />
+            )}
             {team && (
               <figcaption className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-black/50 text-white text-xs flex items-center gap-1.5">
                 <span className={['inline-block w-2.5 h-2.5 rounded-full', `bg-team-${team.colour}`].join(' ')} />

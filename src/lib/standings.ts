@@ -1,5 +1,5 @@
 import { countCompletedLines } from './lines'
-import type { BingoSquare, CodeSubmission, SquareCompletion, Team } from './supabase'
+import type { BingoSquare, CodeSubmission, SquareCompletion, Team, TeamId } from './types'
 
 export type Standing = {
   team: Team
@@ -12,20 +12,23 @@ export function computeStandings(
   teams: Team[],
   squares: BingoSquare[],
   completions: SquareCompletion[],
-  codeSubs: Pick<CodeSubmission, 'team_id' | 'zip_clean'>[],
+  codeSubs: Pick<CodeSubmission, 'teamId' | 'zipClean'>[],
 ): Standing[] {
-  const squareById = new Map(squares.map((s) => [s.id, s] as const))
+  const squareById = new Map<string, BingoSquare>(squares.map((s) => [s._id, s]))
+  const subByTeam = new Map<TeamId, Pick<CodeSubmission, 'teamId' | 'zipClean'>>(
+    codeSubs.map((s) => [s.teamId, s]),
+  )
   const standings = teams.map<Standing>((team) => {
     const completedPositions = new Set<number>()
     for (const c of completions) {
-      if (c.team_id !== team.id) continue
+      if (c.teamId !== team._id) continue
       if (c.status !== 'approved') continue
-      const sq = squareById.get(c.square_id)
+      const sq = squareById.get(c.squareId)
       if (sq) completedPositions.add(sq.position)
     }
     const lines = countCompletedLines(completedPositions)
-    const sub = codeSubs.find((s) => s.team_id === team.id)
-    const bonus = sub?.zip_clean === true ? 1 : 0
+    const sub = subByTeam.get(team._id)
+    const bonus = sub?.zipClean === true ? 1 : 0
     return { team, lines, bonus, entries: lines + bonus }
   })
   standings.sort((a, b) => b.entries - a.entries || b.lines - a.lines || a.team.name.localeCompare(b.team.name))
