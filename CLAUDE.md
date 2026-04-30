@@ -9,11 +9,16 @@ Replaces the original sticker/paper bingo card. Each of ~40 teams plays a 4×4 b
 ## Stack
 
 - React 19 + TypeScript + Vite 6 + Tailwind 3
-- Supabase (Postgres + Realtime + Storage)
+- Supabase (Postgres + Realtime + Storage) — current runtime backend
+- Convex backend scaffolded under `convex/` (schema + queries + mutations + actions); frontend not yet switched over. See `docs/HANDOVER.md` for the migration plan.
 - Netlify hosting
 - `qrcode` (render) + `html5-qrcode` (scan, browser camera)
 - `jszip` (client-side ZIP central-directory inspection)
 - GitHub REST API (client-side, no token — public-repo check)
+
+## Theme
+
+UI is restyled to match the **BrainHack 2026 / CODE_EXP** brand: dark surface (`#000` / `bh.bg`), neon lime `#A6FB00` primary, magenta `#FF00C9` and cyan `#00FFFF` accents, pixel-grid backdrop, Orbitron display + Funnel Display body. Tokens live in `tailwind.config.js` under `bh.*`, `bingo.*-soft`, `team.*`, plus `boxShadow.neon-*` utilities. Global styles (`bh-card`, `bh-btn-primary`, `bh-btn-ghost`, `bh-display`, `bh-stripes`) are defined in `src/index.css`.
 
 ## Identity model (no real auth)
 
@@ -129,7 +134,7 @@ All 10 phases complete:
 - [x] Phase 9 — Lucky draw with spin animation
 - [x] Phase 10 — Game-open/close gating + code-splitting + dev-server smoke test
 
-Build: `npm run build` produces a 449KB initial JS chunk; SquareDetail (with html5-qrcode) and ProjectSubmit (with JSZip) lazy-load on demand.
+Build: `npm run build` produces a ~451KB initial JS chunk; SquareDetail (with html5-qrcode) and ProjectSubmit (with JSZip) lazy-load on demand.
 
 ## Known scope decisions
 

@@ -73,6 +73,12 @@ supabase/
     ├── 0001_init.sql               tables + 16-square seed + realtime publication
     └── 0002_storage.sql             photos + code-zips buckets and policies
 
+convex/                             Convex backend (scaffolded, not yet wired up — see docs/HANDOVER.md)
+├── schema.ts                       table definitions
+├── teams.ts, squares.ts, completions.ts, photos.ts, codeSubmissions.ts, gameState.ts, scoreboard.ts
+├── admin.ts, mentorActions.ts, draw.ts, githubCheck.ts, upload.ts
+└── seed.ts                         16-square seed mutation
+
 docs/
 ├── TESTING.md                      manual test checklist
 └── HANDOVER.md                     current state + Convex migration plan
