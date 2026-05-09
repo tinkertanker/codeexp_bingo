@@ -66,6 +66,42 @@ Not blockers. Pick from the top.
 - [ ] Add screenshots / a 30-second screen-recording to `README.md`. (Static screenshots already produced — see /tmp/codeexp_screenshots in chat history.)
 - [ ] Document the printed-QR card design and physical setup procedure (which mentor hands out cards, where the booth poster goes).
 
+## Design considerations under discussion
+
+Floated late in development; not yet decided. Each has a sketch + tradeoff so a future dev can pick up cold.
+
+### Time-based square availability
+
+**Idea**: certain squares only unlock during specific windows (e.g. "scan a team during lunch", "find someone on stage during the demo block"). Creates "moments" during the event rather than a flat 6-hour grind.
+
+**Sketch**:
+- Add optional `availableFrom` / `availableUntil` fields (epoch ms or HH:MM strings) to the `bingoSquares` rows in `convex/schema.ts` + `convex/seed.ts`.
+- Server-enforce in the relevant `submit*` mutations in `convex/completions.ts`: reject with `"Not available yet"` / `"This square has closed"` outside the window.
+- UI: render locked squares with a clock icon + the window text; auto-refresh on a `useQuery(api.gameState.get)` tick or `setInterval`.
+
+**Tradeoffs**: adds operational overhead — organisers must brief teams on timing, and any phone with a wonky clock will get confusing errors. Probably best limited to 1–2 special squares rather than the whole grid.
+
+### "Interactive screens" / kiosks
+
+**Status**: needs clarification before scoping. Two plausible interpretations:
+- **(a) New kiosk feature** — a venue screen teams gather around. E.g. tappable scoreboard, photo booth, "spin the wheel" moment.
+- **(b) Prototype mockups** — wireframes of the time-based and verification ideas before we commit code.
+
+If (a): simplest add is a `/kiosk/photo-booth` route — front camera, on-tap snapshot, drops a photo into the photo wall with a stamped caption. ~1 evening of work.
+
+If (b): use `ui-sketcher` for ASCII wireframes first, render the chosen direction as a real React preview, screenshot it.
+
+### Verifying claimed completions
+
+**Problem**: orange squares are "find a team that did X" — team A scans team B and self-asserts team B has the feature. Today this is honour-system; nothing checks that team B actually built X.
+
+**Options ranked by cost/value**:
+1. **Mutual scan** (cheap, high friction) — team B must scan back to confirm. Roughly doubles scanning time; teams may abandon mid-flow.
+2. **Photo evidence + mentor approval** (high friction, slow) — every orange claim needs a screenshot or photo; mentor bandwidth becomes the bottleneck for 40 teams × 6 orange squares.
+3. **Probabilistic audit** (cheap, defensible — recommended) — server flips a random ~20% of orange claims to `pending` for mentor review instead of auto-approving. Cheating becomes a coin-flip risk; honest teams barely notice. Implementation: in `convex/completions.ts` `submitOrangeScan`, roll a random number; on hit, set `status: 'pending'` and queue it like a photo approval.
+
+**Recommendation**: option 3 with a per-square audit-rate config (default 0.2). Easy to tune mid-event if it's too noisy or too lax.
+
 ## Open questions for the team
 
 - Will mentors review submissions in real-time during the event, or batch at the end? The current approval queue assumes real-time; batch would change UX.
