@@ -30,13 +30,33 @@ Same 4×4 grid for everyone. Three categories from DSTA's brief plus one wild ca
 
 | Category | Count | Verification |
 |---|---|---|
-| Orange — "Find a team that did X" | 6 | Scan another team's QR (or self). Auto-approves. |
-| Blue — "Ask another team a question" | 4 | Scan another team + type their answer. Colour rule: across the 4 blue squares, no two scans may share a team-colour group (enforced server-side in `convex/completions.ts`). |
+| Orange — "Find a team that did X" | 6 | Scan another team's QR. Auto-approves. The scanned team must have a mentor-approved self-declaration (`teamEligibility`) for that square — see §Self-declared eligibility. Position 15 is "Innovative use of AI", category-locked to cat1. |
+| Blue — "Ask another team a question" | 4 | Scan another team + type their answer. Distinct-team rule: across the 4 blue squares, no two scans may be the same team (enforced server-side in `convex/completions.ts`). |
 | Grey — Photo with team | 1 | Scan team + upload photo. Auto-approve. |
 | Grey — Photo with mentor / on stage | 2 | Upload photo. Mentor approves. |
 | Grey — IG post #BH26 | 1 | Paste IG URL. Mentor approves. |
 | Grey — Visit Deepfake booth | 1 | Scan QR poster at the booth. Auto-complete. |
 | Wild — Show off your project | 1 | Upload selfie. Auto-approve. Goes to public photo wall. |
+
+### Self-declared eligibility (orange squares)
+
+Orange-square completion is no longer pure honour-code. Workflow:
+
+1. A team self-declares "we qualify for X" via the eligibility card on `/t/:token` → creates a `teamEligibility` row, status `pending`.
+2. A mentor approves on `/admin/queue` (Eligibility section).
+3. Only then can another team scan that team's QR to claim the matching orange square.
+
+### Team categories (cat1 / cat2)
+
+Each team is assigned `cat1` or `cat2` (managed on `/admin/teams`). Squares may set `restrictToCategory`; teams from the other category see a "Not your category" placeholder tile and the square is auto-credited toward their bingo lines so they aren't penalised in the lucky draw. Position 15 "Innovative use of AI" is locked to cat1.
+
+### Timed squares
+
+Each `bingoSquare` may carry `releaseAt` (ms epoch) and/or `manuallyReleased` (true = force-released, false = force-locked, undefined = auto). Until released, the tile shows "Coming soon" and Convex blocks submissions in `assertCanSubmit`. Admins manage this on `/admin/game`.
+
+### Fan-favourites voting
+
+Independent of the bingo card. Each team picks one favourite (not themselves) on `/t/:token`; vote stored in `fanVotes`, changeable any time. Tally shown on `/admin/fanfavs` and the public scoreboard. Voting is allowed regardless of `gameState.isOpen`.
 
 ## Lucky draw
 
@@ -57,18 +77,21 @@ Same 4×4 grid for everyone. Three categories from DSTA's brief plus one wild ca
 
 **Admin (passcode + name)**
 - `/admin` — login.
-- `/admin/queue` — pending photo / IG approvals.
-- `/admin/teams` — manage 40 teams + magic links.
-- `/admin/game` — open/close game + live stats.
+- `/admin/queue` — pending eligibility declarations + photo / IG approvals.
+- `/admin/teams` — manage 40 teams (colour + category) + magic links.
+- `/admin/game` — open/close game + live stats + per-square release schedule.
+- `/admin/fanfavs` — fan-favourite vote tally.
 - `/admin/draw` — run the lucky draw (organiser-only).
 
 ## Schema
 
 Source of truth: `convex/schema.ts`. Tables (camelCase, with `_id` and `_creationTime` system fields):
 
-- `teams` — token, colour group. Indexed by `token`, `colour`.
-- `bingoSquares` — 16 seeded rows. Indexed by `position`.
+- `teams` — token, colour group, category (`cat1` / `cat2`). Indexed by `token`, `colour`.
+- `bingoSquares` — 16 seeded rows. Optional `releaseAt` / `manuallyReleased` (timed-lock), optional `restrictToCategory` (cat lock). Indexed by `position`.
 - `squareCompletions` — status + evidence; one row per (team, square) via the `by_team_and_square` index. Photo evidence is a `Id<'_storage'>` reference, not a path.
+- `teamEligibility` — self-declared orange-square eligibility. One row per (team, square). Status `pending|approved|rejected`. Indexed by `by_team`, `by_team_and_square`, `by_status`.
+- `fanVotes` — one row per voting team. Indexed by `voterTeamId` and `votedTeamId`.
 - `mentorActions` — audit trail of every admin action.
 - `codeSubmissions` — one per team. Indexed by `teamId`.
 - `photos` — denormalised for the public photo wall. References `_storage` for the file.

@@ -1,13 +1,15 @@
-import type { BingoSquare, SquareCompletion } from '../lib/types'
+import { isCategoryLocked, isSquareReleased } from '../lib/squares'
+import type { BingoSquare, SquareCompletion, Team } from '../lib/types'
 import SquareCell from './SquareCell'
 
 export type BingoGridProps = {
+  team: Team
   squares: BingoSquare[]
   completions: SquareCompletion[]
   hrefForSquare: (square: BingoSquare) => string
 }
 
-export default function BingoGrid({ squares, completions, hrefForSquare }: BingoGridProps) {
+export default function BingoGrid({ team, squares, completions, hrefForSquare }: BingoGridProps) {
   const completionByPosition = new Map<number, SquareCompletion>()
   for (const c of completions) {
     const sq = squares.find((s) => s._id === c.squareId)
@@ -15,17 +17,22 @@ export default function BingoGrid({ squares, completions, hrefForSquare }: Bingo
   }
 
   const ordered = [...squares].sort((a, b) => a.position - b.position)
+  const now = Date.now()
 
   return (
     <div className="grid grid-cols-4 gap-1.5 sm:gap-2 w-full max-w-2xl mx-auto">
       {ordered.map((sq) => {
         const completion = completionByPosition.get(sq.position)
+        const categoryLocked = isCategoryLocked(sq, team)
+        const timedLocked = !categoryLocked && !isSquareReleased(sq, now) && !completion
         return (
           <SquareCell
             key={sq._id}
             square={sq}
             status={completion?.status ?? null}
             href={hrefForSquare(sq)}
+            timedLocked={timedLocked}
+            categoryLocked={categoryLocked}
           />
         )
       })}

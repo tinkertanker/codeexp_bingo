@@ -70,11 +70,31 @@ export default function Scoreboard() {
             <Leaderboard standings={standings} highlightTeamIds={winnerIds} />
           </div>
         </section>
-        <section className="p-6 flex flex-col">
+        <section className="p-6 flex flex-col min-h-0">
           <h2 className="bh-display text-2xl font-bold mb-3 text-white">Live photo wall</h2>
           <div className="flex-1 min-h-0 overflow-hidden">
             <PhotoWall photos={bundle.photos} teamsById={teamsById} cap={18} />
           </div>
+          {bundle.fanFavs.length > 0 && (
+            <div className="mt-4 bh-card p-3">
+              <h3 className="bh-display text-sm font-bold text-bh-magenta mb-2 tracking-wider">
+                ♥ FAN FAVOURITES <span className="text-bh-dim font-normal">— {bundle.totalFanVotes} vote{bundle.totalFanVotes === 1 ? '' : 's'}</span>
+              </h3>
+              <ol className="space-y-1">
+                {bundle.fanFavs
+                  .filter((f) => f.votes > 0)
+                  .slice(0, 5)
+                  .map((f, i) => (
+                    <li key={f.team._id} className="flex items-center gap-2 text-sm">
+                      <span className="bh-display w-5 text-right text-xs text-bh-dim tabular-nums">{i + 1}</span>
+                      <span className={['inline-block w-2.5 h-2.5 rounded-full', `bg-team-${f.team.colour}`].join(' ')} />
+                      <span className="flex-1 truncate text-white">{f.team.name}</span>
+                      <span className="bh-display text-bh-magenta font-extrabold tabular-nums">{f.votes}</span>
+                    </li>
+                  ))}
+              </ol>
+            </div>
+          )}
         </section>
       </div>
       {winners.length > 0 && (

@@ -2,6 +2,7 @@ import { v } from 'convex/values'
 import type { Id } from './_generated/dataModel'
 import { mutation, type MutationCtx } from './_generated/server'
 import { assertAdmin, assertOrganiser } from './admin'
+import { effectiveCategory } from './lib'
 import { logMentorAction } from './mentorActions'
 
 const NUM_LINES = 10
@@ -39,6 +40,13 @@ async function buildEntryPool(
       if (c.status !== 'approved') continue
       const sq = squareById.get(c.squareId)
       if (sq) positions.add(sq.position)
+    }
+    // (5) Auto-fill positions locked for the other category so cat2 isn't penalised.
+    const teamCat = effectiveCategory(team)
+    for (const sq of squares) {
+      if (sq.restrictToCategory && sq.restrictToCategory !== teamCat) {
+        positions.add(sq.position)
+      }
     }
     const lines = countLines(positions)
     const sub = subByTeam.get(team._id)

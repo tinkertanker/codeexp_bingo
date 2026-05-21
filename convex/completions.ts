@@ -1,6 +1,8 @@
 import { v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
+import { assertEligible } from './eligibility'
+import { effectiveCategory, isSquareReleased } from './lib'
 
 async function findExisting(
   ctx: MutationCtx,
@@ -25,7 +27,9 @@ async function upsert(
   return await ctx.db.insert('squareCompletions', payload)
 }
 
-async function checkBlueColourRule(
+// (3) Blue squares now require each scan to be a different *team* (not just different
+// team-colour). The enforceColourDistinct flag stays — its semantics changed.
+async function checkBlueDistinctTeamRule(
   ctx: MutationCtx,
   teamId: Id<'teams'>,
   squareId: Id<'bingoSquares'>,
@@ -40,20 +44,17 @@ async function checkBlueColourRule(
     .query('squareCompletions')
     .withIndex('by_team', (q) => q.eq('teamId', teamId))
     .collect()
-  const otherBlueCompletions = myCompletions.filter(
-    (c) => otherIds.has(c.squareId) && c.scannedTeamId && c.status !== 'rejected',
+  const conflict = myCompletions.find(
+    (c) =>
+      otherIds.has(c.squareId) &&
+      c.scannedTeamId === scannedTeamId &&
+      c.status !== 'rejected',
   )
-  if (otherBlueCompletions.length === 0) return
-
-  const scannedTeam = await ctx.db.get(scannedTeamId)
-  if (!scannedTeam) return
-  for (const c of otherBlueCompletions) {
-    const t = await ctx.db.get(c.scannedTeamId!)
-    if (t && t.colour === scannedTeam.colour) {
-      throw new Error(
-        `You've already used a ${scannedTeam.colour} team for another blue square. Each blue square needs a different team-colour.`,
-      )
-    }
+  if (conflict) {
+    const scannedTeam = await ctx.db.get(scannedTeamId)
+    throw new Error(
+      `You've already used ${scannedTeam?.name ?? 'this team'} for another blue square — each blue square needs a different team.`,
+    )
   }
 }
 
@@ -62,6 +63,29 @@ async function assertGameOpen(ctx: MutationCtx): Promise<void> {
   if (!game?.isOpen) {
     throw new Error('The bingo is paused — submissions are locked right now.')
   }
+}
+
+// (4b + 5) Shared gate every submission goes through after game-open: enforces release time
+// and the cat1/cat2 restriction.
+async function assertCanSubmit(
+  ctx: MutationCtx,
+  teamId: Id<'teams'>,
+  squareId: Id<'bingoSquares'>,
+): Promise<Doc<'bingoSquares'>> {
+  await assertGameOpen(ctx)
+  const square = await ctx.db.get(squareId)
+  if (!square) throw new Error('Square not found.')
+  if (!isSquareReleased(square)) {
+    throw new Error("This square isn't unlocked yet. Check back later.")
+  }
+  if (square.restrictToCategory) {
+    const team = await ctx.db.get(teamId)
+    if (!team) throw new Error('Team not found.')
+    if (effectiveCategory(team) !== square.restrictToCategory) {
+      throw new Error("This square isn't part of your category.")
+    }
+  }
+  return square
 }
 
 export const listForTeam = query({
@@ -81,7 +105,16 @@ export const submitScanTeam = mutation({
     scannedTeamId: v.id('teams'),
   },
   handler: async (ctx: MutationCtx, args) => {
-    await assertGameOpen(ctx)
+    const square = await assertCanSubmit(ctx, args.teamId, args.squareId)
+    // (4a) Orange squares: the scanned team must have an approved self-declaration.
+    if (square.category === 'orange') {
+      if (args.scannedTeamId === args.teamId) {
+        throw new Error(
+          "Orange squares need to be completed by scanning a *different* team — declare your own eligibility instead.",
+        )
+      }
+      await assertEligible(ctx, args.scannedTeamId, args.squareId)
+    }
     await upsert(ctx, {
       teamId: args.teamId,
       squareId: args.squareId,
@@ -99,17 +132,15 @@ export const submitScanTeamWithAnswer = mutation({
     textAnswer: v.string(),
   },
   handler: async (ctx: MutationCtx, args) => {
-    await assertGameOpen(ctx)
+    const square = await assertCanSubmit(ctx, args.teamId, args.squareId)
     if (args.scannedTeamId === args.teamId) {
       throw new Error("Blue squares need to be completed with another team — you can't scan yourself here.")
     }
     if (!args.textAnswer.trim()) {
       throw new Error("Please type the team's answer briefly.")
     }
-    const square = await ctx.db.get(args.squareId)
-    if (!square) throw new Error('Square not found.')
     if (square.enforceColourDistinct) {
-      await checkBlueColourRule(ctx, args.teamId, args.squareId, args.scannedTeamId)
+      await checkBlueDistinctTeamRule(ctx, args.teamId, args.squareId, args.scannedTeamId)
     }
     await upsert(ctx, {
       teamId: args.teamId,
@@ -129,7 +160,7 @@ export const submitPhotoWithTeam = mutation({
     photoStorageId: v.id('_storage'),
   },
   handler: async (ctx: MutationCtx, args) => {
-    await assertGameOpen(ctx)
+    await assertCanSubmit(ctx, args.teamId, args.squareId)
     const id = await upsert(ctx, {
       teamId: args.teamId,
       squareId: args.squareId,
@@ -152,7 +183,7 @@ export const submitPhotoAuto = mutation({
     photoStorageId: v.id('_storage'),
   },
   handler: async (ctx: MutationCtx, args) => {
-    await assertGameOpen(ctx)
+    await assertCanSubmit(ctx, args.teamId, args.squareId)
     const id = await upsert(ctx, {
       teamId: args.teamId,
       squareId: args.squareId,
@@ -174,7 +205,7 @@ export const submitPhotoMentor = mutation({
     photoStorageId: v.id('_storage'),
   },
   handler: async (ctx: MutationCtx, args) => {
-    await assertGameOpen(ctx)
+    await assertCanSubmit(ctx, args.teamId, args.squareId)
     const id = await upsert(ctx, {
       teamId: args.teamId,
       squareId: args.squareId,
@@ -196,7 +227,7 @@ export const submitIgUrl = mutation({
     igUrl: v.string(),
   },
   handler: async (ctx: MutationCtx, args) => {
-    await assertGameOpen(ctx)
+    await assertCanSubmit(ctx, args.teamId, args.squareId)
     const trimmed = args.igUrl.trim()
     if (!/^https?:\/\//i.test(trimmed)) {
       throw new Error('Please paste a full URL starting with https://')
@@ -216,7 +247,7 @@ export const submitBoothQr = mutation({
     squareId: v.id('bingoSquares'),
   },
   handler: async (ctx: MutationCtx, args) => {
-    await assertGameOpen(ctx)
+    await assertCanSubmit(ctx, args.teamId, args.squareId)
     await upsert(ctx, {
       teamId: args.teamId,
       squareId: args.squareId,

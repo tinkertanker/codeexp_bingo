@@ -1,4 +1,5 @@
 import { countCompletedLines } from './lines'
+import { isCategoryLocked } from './squares'
 import type { BingoSquare, CodeSubmission, SquareCompletion, Team, TeamId } from './types'
 
 export type Standing = {
@@ -8,25 +9,39 @@ export type Standing = {
   entries: number
 }
 
+// Returns the positions a team should be credited with for line-counting.
+// Includes squares that are category-locked for the *other* category (auto-fill — see plan §5).
+export function effectivelyFilledFor(
+  team: Team,
+  squares: BingoSquare[],
+  completions: SquareCompletion[],
+): Set<number> {
+  const squareById = new Map<string, BingoSquare>(squares.map((s) => [s._id, s]))
+  const filled = new Set<number>()
+  for (const c of completions) {
+    if (c.teamId !== team._id) continue
+    if (c.status !== 'approved') continue
+    const sq = squareById.get(c.squareId)
+    if (sq) filled.add(sq.position)
+  }
+  for (const sq of squares) {
+    if (isCategoryLocked(sq, team)) filled.add(sq.position)
+  }
+  return filled
+}
+
 export function computeStandings(
   teams: Team[],
   squares: BingoSquare[],
   completions: SquareCompletion[],
   codeSubs: Pick<CodeSubmission, 'teamId' | 'zipClean'>[],
 ): Standing[] {
-  const squareById = new Map<string, BingoSquare>(squares.map((s) => [s._id, s]))
   const subByTeam = new Map<TeamId, Pick<CodeSubmission, 'teamId' | 'zipClean'>>(
     codeSubs.map((s) => [s.teamId, s]),
   )
   const standings = teams.map<Standing>((team) => {
-    const completedPositions = new Set<number>()
-    for (const c of completions) {
-      if (c.teamId !== team._id) continue
-      if (c.status !== 'approved') continue
-      const sq = squareById.get(c.squareId)
-      if (sq) completedPositions.add(sq.position)
-    }
-    const lines = countCompletedLines(completedPositions)
+    const filled = effectivelyFilledFor(team, squares, completions)
+    const lines = countCompletedLines(filled)
     const sub = subByTeam.get(team._id)
     const bonus = sub?.zipClean === true ? 1 : 0
     return { team, lines, bonus, entries: lines + bonus }

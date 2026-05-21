@@ -1,6 +1,7 @@
 import type { Doc, Id } from '../../convex/_generated/dataModel'
 
 export type TeamColour = 'red' | 'blue' | 'green' | 'yellow'
+export type TeamCategory = 'cat1' | 'cat2'
 export type SquareCategory = 'orange' | 'blue' | 'grey' | 'wild'
 export type VerificationKind =
   | 'scan_team'
@@ -18,6 +19,8 @@ export type SquareCompletion = Doc<'squareCompletions'>
 export type Photo = Doc<'photos'>
 export type CodeSubmission = Doc<'codeSubmissions'>
 export type GameState = Doc<'gameState'>
+export type TeamEligibility = Doc<'teamEligibility'>
+export type FanVote = Doc<'fanVotes'>
 
 export type DrawWinner = { teamId: Id<'teams'>; prizeRank: number }
 

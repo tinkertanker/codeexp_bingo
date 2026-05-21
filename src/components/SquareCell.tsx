@@ -18,10 +18,57 @@ export type SquareCellProps = {
   square: BingoSquare
   status: CompletionStatus | null
   href: string
+  // (4b) True when releaseAt is in the future (or manuallyReleased=false) — show "Coming soon".
+  timedLocked?: boolean
+  // (5) True when restrictToCategory doesn't match the viewing team — show category lock.
+  categoryLocked?: boolean
 }
 
-export default function SquareCell({ square, status, href }: SquareCellProps) {
+export default function SquareCell({ square, status, href, timedLocked, categoryLocked }: SquareCellProps) {
   const c = categoryClasses[square.category]
+
+  if (categoryLocked) {
+    return (
+      <div
+        className={[
+          'relative aspect-square rounded-md p-2 sm:p-3 ring-1',
+          'flex flex-col items-center justify-center text-center',
+          'bg-bh-panel/40 ring-bh-line/60 opacity-70 cursor-not-allowed',
+        ].join(' ')}
+        aria-disabled
+        title="Locked — not for your category"
+      >
+        <div className="bh-display text-[0.55rem] sm:text-[0.6rem] tracking-widest text-bh-dim/80">
+          NOT YOUR CATEGORY
+        </div>
+        <div className="mt-1 text-[0.55rem] text-bh-dim/70 leading-snug">
+          This square is reserved for the other category.
+        </div>
+      </div>
+    )
+  }
+
+  if (timedLocked) {
+    return (
+      <div
+        className={[
+          'relative aspect-square rounded-md p-2 sm:p-3 ring-1',
+          'flex flex-col items-center justify-center text-center',
+          'bg-bh-panel/40 ring-bh-yellow/30 cursor-not-allowed',
+        ].join(' ')}
+        aria-disabled
+        title="Coming soon"
+      >
+        <div className="bh-display text-[0.55rem] sm:text-[0.65rem] tracking-widest text-bh-yellow">
+          COMING SOON
+        </div>
+        <div className="mt-1 text-[0.5rem] sm:text-[0.55rem] text-bh-dim leading-snug">
+          Unlocks later in the event.
+        </div>
+      </div>
+    )
+  }
+
   return (
     <Link
       to={href}

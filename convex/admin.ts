@@ -22,10 +22,20 @@ export function isOrganiser(name: string): boolean {
 }
 
 export function assertOrganiser(name: string): void {
+  if (ORGANISER_NAMES.length === 0) {
+    throw new Error(
+      'ORGANISER_NAMES is not configured on the Convex deployment. Run `npx convex env set ORGANISER_NAMES <name1,name2>` and reload.',
+    )
+  }
   if (!isOrganiser(name)) {
-    throw new Error('This action is restricted to organisers.')
+    throw new Error(
+      `Only organisers can run this. Your name "${name}" isn't in ORGANISER_NAMES (${ORGANISER_NAMES.join(', ')}).`,
+    )
   }
 }
+
+// Exposed so the admin UI can render the configured list when help is needed.
+export const organiserNames = (): readonly string[] => ORGANISER_NAMES
 
 export const approveCompletion = mutation({
   args: {

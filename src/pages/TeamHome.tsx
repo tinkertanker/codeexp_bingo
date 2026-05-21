@@ -1,8 +1,11 @@
 import { Link, useParams } from 'react-router-dom'
 import BingoGrid from '../components/BingoGrid'
+import EligibilityCard from '../components/EligibilityCard'
+import FanFavCard from '../components/FanFavCard'
 import TeamHeader from '../components/TeamHeader'
 import { useTeam } from '../hooks/useTeam'
 import { countCompletedLines } from '../lib/lines'
+import { effectivelyFilledFor } from '../lib/standings'
 import { clearTeamToken } from '../lib/token'
 
 export default function TeamHome() {
@@ -37,13 +40,8 @@ export default function TeamHome() {
     return <div className="p-6 text-bh-magenta">Could not load team data.</div>
   }
 
-  const completedPositions = new Set(
-    data.completions
-      .filter((c) => c.status === 'approved')
-      .map((c) => data.squares.find((s) => s._id === c.squareId)?.position)
-      .filter((p): p is number => typeof p === 'number'),
-  )
-  const lines = countCompletedLines(completedPositions)
+  const effectivelyFilled = effectivelyFilledFor(data.team, data.squares, data.completions)
+  const lines = countCompletedLines(effectivelyFilled)
   const entries = lines
 
   return (
@@ -56,10 +54,13 @@ export default function TeamHome() {
           </div>
         )}
         <BingoGrid
+          team={data.team}
           squares={data.squares}
           completions={data.completions}
           hrefForSquare={(sq) => `/t/${data.team.token}/square/${sq.position}`}
         />
+        <EligibilityCard team={data.team} squares={data.squares} />
+        <FanFavCard team={data.team} />
         <div className="mt-6 grid grid-cols-2 gap-2">
           <Link to={`/t/${data.team.token}/project`} className="bh-btn-primary text-sm">
             Project submission

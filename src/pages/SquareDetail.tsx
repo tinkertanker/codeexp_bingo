@@ -6,6 +6,7 @@ import QRScanner from '../components/QRScanner'
 import { api } from '../../convex/_generated/api'
 import { useTeam } from '../hooks/useTeam'
 import { parseTeamToken } from '../lib/qr'
+import { isCategoryLocked, isSquareReleased } from '../lib/squares'
 import { uploadToConvex } from '../lib/storage'
 import type { BingoSquare, Team } from '../lib/types'
 
@@ -25,6 +26,8 @@ export default function SquareDetail() {
   const existing = data.completions.find((c) => c.squareId === square._id)
   const completed = existing?.status === 'approved'
   const pending = existing?.status === 'pending'
+  const categoryLocked = isCategoryLocked(square, data.team)
+  const timedLocked = !categoryLocked && !isSquareReleased(square)
 
   const finishSubmit = async (resultPromise: Promise<Outcome>): Promise<{ ok: boolean; reason?: string }> => {
     const r = await resultPromise
@@ -42,6 +45,16 @@ export default function SquareDetail() {
         <h1 className="mt-2 bh-display text-xl font-bold text-white">{square.title}</h1>
         <p className="text-sm text-bh-dim mb-4">{square.description}</p>
 
+        {categoryLocked && (
+          <div className="p-3 rounded-md ring-1 ring-bh-line bg-bh-panel/60 text-bh-dim text-sm mb-4">
+            <strong className="bh-display tracking-wider text-white">Not your category.</strong> This square is reserved for the other category — it's been auto-filled on your card so it doesn't block lines.
+          </div>
+        )}
+        {timedLocked && (
+          <div className="p-3 rounded-md ring-1 ring-bh-yellow/40 bg-bh-yellow/10 text-bh-yellow text-sm mb-4">
+            <strong className="bh-display tracking-wider">Coming soon.</strong> This square unlocks later in the event.
+          </div>
+        )}
         {completed && (
           <div className="p-3 rounded-md ring-1 ring-bh-lime/40 bg-bh-lime/10 text-bh-lime text-sm mb-4 bh-display tracking-wider">Already completed ✓</div>
         )}
@@ -51,12 +64,12 @@ export default function SquareDetail() {
           </div>
         )}
 
-        {!data.gameOpen && !completed && (
+        {!data.gameOpen && !completed && !categoryLocked && !timedLocked && (
           <div className="p-3 rounded-md ring-1 ring-bh-yellow/40 bg-bh-yellow/10 text-bh-yellow text-sm mb-4">
             The bingo is paused — submissions are locked. Try again once the game reopens.
           </div>
         )}
-        {!completed && data.gameOpen && (
+        {!completed && !categoryLocked && !timedLocked && data.gameOpen && (
           <Verification team={data.team} square={square} onSubmit={finishSubmit} />
         )}
       </div>
@@ -261,7 +274,7 @@ function ScanTeamWithAnswerFlow({ team, square, onSubmit }: VerifProps) {
         Scan another team's QR
       </button>
       <p className="text-xs text-bh-dim">
-        Across the 4 blue squares, you must use teams of <strong>4 different colours</strong>.
+        Across the 4 blue squares, you must scan <strong>4 different teams</strong>.
       </p>
       {error && <div className="text-sm text-bh-magenta">{error}</div>}
     </div>
