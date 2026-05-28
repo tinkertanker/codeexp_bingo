@@ -22,9 +22,13 @@ Set these via `npx convex env set`:
 ```bash
 npx convex env set ADMIN_PASSCODE 'your-passcode'
 npx convex env set ORGANISER_NAMES 'YJ,Marcus'
+# Optional: AI-generated complaints for private/non-public Drive links.
+npx convex env set OPENAI_API_KEY 'sk-...'
+npx convex env set OPENAI_BASE_URL 'https://api.openai.com/v1'
+npx convex env set OPENAI_MODEL 'gpt-4.1-mini'
 ```
 
-These are read inside Convex functions via `process.env.ADMIN_PASSCODE` and `process.env.ORGANISER_NAMES`. They never reach the client.
+These are read inside Convex functions via `process.env.*`. They never reach the client.
 
 ## Required environment variables (frontend side)
 

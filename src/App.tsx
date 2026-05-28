@@ -7,6 +7,7 @@ const SquareDetail = lazy(() => import('./pages/SquareDetail'))
 const TeamQR = lazy(() => import('./pages/TeamQR'))
 const ProjectSubmit = lazy(() => import('./pages/ProjectSubmit'))
 const AiSubmission = lazy(() => import('./pages/AiSubmission'))
+const ClaimQr = lazy(() => import('./pages/ClaimQr'))
 const BoothDeepfake = lazy(() => import('./pages/BoothDeepfake'))
 const Scoreboard = lazy(() => import('./pages/Scoreboard'))
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
@@ -32,6 +33,7 @@ function App() {
           <Route path="/t/:token/qr" element={<TeamQR />} />
           <Route path="/t/:token/project" element={<ProjectSubmit />} />
           <Route path="/t/:token/ai-submission" element={<AiSubmission />} />
+          <Route path="/claim/:claimSlug" element={<ClaimQr />} />
           <Route path="/booth/deepfake" element={<BoothDeepfake />} />
           <Route path="/scoreboard" element={<Scoreboard />} />
           <Route path="/admin" element={<AdminLogin />} />

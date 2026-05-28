@@ -62,6 +62,67 @@ export const create = mutation({
   },
 })
 
+const teamMetadata = v.object({
+  name: v.string(),
+  teamNumber: v.optional(v.string()),
+  appName: v.optional(v.string()),
+  description: v.optional(v.string()),
+  pitchUrl: v.optional(v.string()),
+  slideDeckUrl: v.optional(v.string()),
+  wireframeUrl: v.optional(v.string()),
+  architectureUrl: v.optional(v.string()),
+})
+
+function cleanOptional(value: string | undefined): string | undefined {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : undefined
+}
+
+function normaliseTeamName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+export const bulkUpdateMetadata = mutation({
+  args: {
+    passcode: v.string(),
+    mentorName: v.string(),
+    teams: v.array(teamMetadata),
+  },
+  handler: async (ctx: MutationCtx, args) => {
+    assertAdmin(args.passcode)
+    if (!args.mentorName.trim()) throw new Error('mentorName is required for the audit trail.')
+    const existing = await ctx.db.query('teams').collect()
+    const byName = new Map(existing.map((team) => [normaliseTeamName(team.name), team] as const))
+    let updated = 0
+    const missing: string[] = []
+
+    for (const item of args.teams) {
+      const team = byName.get(normaliseTeamName(item.name))
+      if (!team) {
+        missing.push(item.name)
+        continue
+      }
+      await ctx.db.patch(team._id, {
+        teamNumber: cleanOptional(item.teamNumber),
+        appName: cleanOptional(item.appName),
+        description: cleanOptional(item.description),
+        pitchUrl: cleanOptional(item.pitchUrl),
+        slideDeckUrl: cleanOptional(item.slideDeckUrl),
+        wireframeUrl: cleanOptional(item.wireframeUrl),
+        architectureUrl: cleanOptional(item.architectureUrl),
+      })
+      updated++
+    }
+
+    await logMentorAction(ctx, {
+      mentorName: args.mentorName,
+      action: 'update_team_metadata',
+      metadata: { updated, missing },
+    })
+    return { updated, missing }
+  },
+})
+
 // (5) Admin can re-assign a team's category any time before/during the event.
 export const setCategory = mutation({
   args: {

@@ -18,7 +18,7 @@ export type SquareCellProps = {
   square: BingoSquare
   status: CompletionStatus | null
   href: string
-  // (4b) True when releaseAt is in the future (or manuallyReleased=false) — show "Coming soon".
+  // (4b) True when releaseAt is in the future (or manuallyReleased=false) — hide mission text.
   timedLocked?: boolean
   // (5) True when restrictToCategory doesn't match the viewing team — show category lock.
   categoryLocked?: boolean
@@ -54,18 +54,14 @@ export default function SquareCell({ square, status, href, timedLocked, category
         className={[
           'relative aspect-square rounded-md p-2 sm:p-3 ring-1',
           'flex flex-col items-center justify-center text-center',
-          'bg-bh-panel/40 ring-bh-yellow/30 cursor-not-allowed',
+          'cursor-not-allowed',
+          c.bg,
+          c.ring,
         ].join(' ')}
         aria-disabled
-        title="Coming soon"
-      >
-        <div className="bh-display text-[0.55rem] sm:text-[0.65rem] tracking-widest text-bh-yellow">
-          COMING SOON
-        </div>
-        <div className="mt-1 text-[0.5rem] sm:text-[0.55rem] text-bh-dim leading-snug">
-          Unlocks later in the event.
-        </div>
-      </div>
+        aria-label="Mission not yet released"
+        title="Mission not yet released"
+      />
     )
   }
 

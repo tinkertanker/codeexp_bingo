@@ -11,6 +11,8 @@ import { effectiveCategory } from '../lib/squares'
 import { saveScoreboardPass } from '../lib/token'
 import type { DrawWinner, TeamCategory, TeamId } from '../lib/types'
 
+type ScreenTab = 'overview' | 'bingo' | 'photos' | 'fanfavs'
+
 export default function Scoreboard() {
   const [unlocked, setUnlocked] = useState(isScoreboardUnlocked())
   if (!unlocked) return <ScoreboardGate onUnlock={() => setUnlocked(true)} />
@@ -33,7 +35,7 @@ function ScoreboardGate({ onUnlock }: { onUnlock: () => void }) {
     <div className="min-h-screen bg-black flex items-center justify-center p-6">
       <form onSubmit={submit} className="bh-card p-6 w-full max-w-sm space-y-4">
         <h1 className="bh-display text-xl font-bold text-white">
-          CODE_EXP <span className="text-bh-lime">BINGO</span>
+          CODE_EXP <span className="text-bh-lime">2026</span>
         </h1>
         <p className="text-sm text-bh-dim">This screen is for the venue TVs. Enter the screen passcode to continue.</p>
         <input
@@ -58,19 +60,19 @@ function ScoreboardView() {
   const bundle = useQuery(api.scoreboard.bundle)
   const [categoryFilter, setCategoryFilter] = useState<'all' | TeamCategory>('all')
   const [groupByMission, setGroupByMission] = useState(false)
+  const [activeTab, setActiveTab] = useState<ScreenTab>('overview')
+  const [selectedStanding, setSelectedStanding] = useState<Standing | null>(null)
 
   if (bundle === undefined) {
-    return <div className="p-8 text-bh-dim bg-black min-h-screen bh-display">Loading scoreboard…</div>
+    return <div className="p-8 text-bh-dim bg-black min-h-screen bh-display">Loading scoreboard...</div>
   }
 
   const standings: Standing[] = computeStandings(bundle.teams, bundle.squares, bundle.completions, bundle.submissions)
   const teamsById = new Map(bundle.teams.map((t) => [t._id, t] as const))
   const winners: DrawWinner[] = bundle.game?.drawWinners ?? []
   const winnerIds = new Set<TeamId>(winners.map((w) => w.teamId))
-
   const filtered =
     categoryFilter === 'all' ? standings : standings.filter((s) => effectiveCategory(s.team) === categoryFilter)
-
   const groups = [
     ...PROBLEM_STATEMENTS.map((p) => ({
       id: p.id,
@@ -104,9 +106,9 @@ function ScoreboardView() {
             <div className="flex items-center gap-4">
               <img src="/code-exp-logo.png" alt="" className="w-14 h-14 drop-shadow-[0_0_18px_rgba(166,251,0,0.5)]" />
               <div>
-                <div className="bh-display text-[0.7rem] text-bh-dim tracking-[0.2em]">— BRAINHACK 2026 —</div>
+                <div className="bh-display text-[0.7rem] text-bh-dim tracking-[0.2em]">-- BRAINHACK 2026 --</div>
                 <h1 className="bh-display text-4xl font-extrabold tracking-tight text-white">
-                  CODE_EXP <span className="text-bh-lime">BINGO</span>
+                  CODE_EXP <span className="text-bh-lime">2026</span>
                 </h1>
               </div>
             </div>
@@ -117,46 +119,85 @@ function ScoreboardView() {
                   bundle.game.isOpen ? 'bg-bh-lime text-black ring-bh-lime shadow-neon-lime' : 'bg-bh-panel text-bh-dim ring-bh-line',
                 ].join(' ')}
               >
-                {bundle.game.isOpen ? '● Live' : 'Closed'}
+                {bundle.game.isOpen ? 'Live' : 'Closed'}
               </span>
             )}
           </header>
 
           <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')}>Overview</TabButton>
+            <TabButton active={activeTab === 'bingo'} onClick={() => setActiveTab('bingo')}>Bingo details</TabButton>
+            <TabButton active={activeTab === 'photos'} onClick={() => setActiveTab('photos')}>Photos</TabButton>
+            <TabButton active={activeTab === 'fanfavs'} onClick={() => setActiveTab('fanfavs')}>Fan favourites</TabButton>
+          </div>
+
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
             <SegButton active={categoryFilter === 'all'} onClick={() => setCategoryFilter('all')}>All</SegButton>
             <SegButton active={categoryFilter === 'cat1'} onClick={() => setCategoryFilter('cat1')}>{categoryLabel('cat1')}</SegButton>
             <SegButton active={categoryFilter === 'cat2'} onClick={() => setCategoryFilter('cat2')}>{categoryLabel('cat2')}</SegButton>
-            <span className="w-px h-5 bg-bh-line mx-1" />
-            <SegButton active={!groupByMission} onClick={() => setGroupByMission(false)}>Overall</SegButton>
-            <SegButton active={groupByMission} onClick={() => setGroupByMission(true)}>By mission</SegButton>
+            {activeTab === 'bingo' && (
+              <>
+                <span className="w-px h-5 bg-bh-line mx-1" />
+                <SegButton active={!groupByMission} onClick={() => setGroupByMission(false)}>Overall</SegButton>
+                <SegButton active={groupByMission} onClick={() => setGroupByMission(true)}>By mission</SegButton>
+              </>
+            )}
           </div>
 
-          <div className="text-xs text-bh-dim mb-3 bh-display tracking-wider">
-            <span className="text-bh-lime">L</span> = lines · <span className="text-white">TOTAL</span> = lucky-draw entries (lines + clean-ZIP bonus)
-          </div>
+          {activeTab === 'bingo' && (
+            <div className="text-xs text-bh-dim mb-3 bh-display tracking-wider">
+              <span className="text-bh-lime">L</span> = lines · <span className="text-white">TOTAL</span> = lucky-draw entries (lines + clean-ZIP bonus)
+            </div>
+          )}
+
           <div className="flex-1 min-h-0 overflow-auto bh-card p-2">
-            {groupByMission ? (
+            {activeTab === 'bingo' && groupByMission ? (
               <div className="space-y-4">
                 {groups.map((g) => (
                   <div key={g.id}>
                     <h3 className="bh-display text-sm text-bh-cyan tracking-wider mb-1">
                       {g.label} <span className="text-bh-dim">· {g.rows.length}</span>
                     </h3>
-                    <Leaderboard standings={g.rows} highlightTeamIds={winnerIds} />
+                    <Leaderboard standings={g.rows} highlightTeamIds={winnerIds} onTeamClick={setSelectedStanding} />
                   </div>
                 ))}
               </div>
+            ) : activeTab === 'photos' ? (
+              <PhotoWall photos={bundle.photos} teamsById={teamsById} cap={18} />
+            ) : activeTab === 'fanfavs' ? (
+              <div className="grid grid-cols-2 gap-3">
+                <FanBoard title={categoryLabel('cat1')} rows={bundle.fanFavs.cat1.rows} />
+                <FanBoard title={categoryLabel('cat2')} rows={bundle.fanFavs.cat2.rows} />
+              </div>
             ) : (
-              <Leaderboard standings={filtered} highlightTeamIds={winnerIds} />
+              <Leaderboard standings={filtered} highlightTeamIds={winnerIds} onTeamClick={setSelectedStanding} />
             )}
           </div>
         </section>
         <section className="p-6 flex flex-col min-h-0">
-          <h2 className="bh-display text-2xl font-bold mb-3 text-white">Live photo wall</h2>
+          <h2 className="bh-display text-2xl font-bold mb-3 text-white">
+            {activeTab === 'bingo' ? 'Mission groups' : activeTab === 'fanfavs' ? 'Top fan favourites' : 'Live photo wall'}
+          </h2>
           <div className="flex-1 min-h-0 overflow-hidden">
-            <PhotoWall photos={bundle.photos} teamsById={teamsById} cap={18} />
+            {activeTab === 'bingo' ? (
+              <div className="space-y-2 overflow-auto h-full pr-1">
+                {groups.map((g) => (
+                  <div key={g.id} className="rounded-md ring-1 ring-bh-line bg-bh-surface/70 px-3 py-2">
+                    <div className="bh-display text-sm text-white">{g.label}</div>
+                    <div className="text-xs text-bh-dim">{g.rows.length} teams</div>
+                  </div>
+                ))}
+              </div>
+            ) : activeTab === 'fanfavs' ? (
+              <div className="grid grid-cols-1 gap-3">
+                <FanBoard title={categoryLabel('cat1')} rows={bundle.fanFavs.cat1.rows} />
+                <FanBoard title={categoryLabel('cat2')} rows={bundle.fanFavs.cat2.rows} />
+              </div>
+            ) : (
+              <PhotoWall photos={bundle.photos} teamsById={teamsById} cap={18} />
+            )}
           </div>
-          {(bundle.fanFavs.cat1.rows.length > 0 || bundle.fanFavs.cat2.rows.length > 0) && (
+          {activeTab === 'overview' && (bundle.fanFavs.cat1.rows.length > 0 || bundle.fanFavs.cat2.rows.length > 0) && (
             <div className="mt-4 grid grid-cols-2 gap-3">
               <FanBoard title={categoryLabel('cat1')} rows={bundle.fanFavs.cat1.rows} />
               <FanBoard title={categoryLabel('cat2')} rows={bundle.fanFavs.cat2.rows} />
@@ -166,7 +207,7 @@ function ScoreboardView() {
       </div>
       {winners.length > 0 && (
         <div className="absolute bottom-0 left-0 right-0 bg-bh-lime text-black px-6 py-4 flex items-center justify-center gap-6 bh-display text-2xl font-extrabold shadow-[0_-8px_40px_rgba(166,251,0,0.45)]">
-          <span>★ WINNERS</span>
+          <span>WINNERS</span>
           {winners
             .slice()
             .sort((a, b) => a.prizeRank - b.prizeRank)
@@ -180,7 +221,22 @@ function ScoreboardView() {
             })}
         </div>
       )}
+      {selectedStanding && <TeamAssetsModal standing={selectedStanding} onClose={() => setSelectedStanding(null)} />}
     </div>
+  )
+}
+
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={[
+        'bh-display px-3 py-1.5 rounded text-xs tracking-wider transition ring-1',
+        active ? 'bg-white text-black ring-white' : 'text-bh-dim ring-bh-line hover:text-white hover:bg-bh-panel',
+      ].join(' ')}
+    >
+      {children}
+    </button>
   )
 }
 
@@ -203,7 +259,7 @@ type FanRow = { team: { _id: string; name: string; colour: string }; points: num
 function FanBoard({ title, rows }: { title: string; rows: FanRow[] }) {
   return (
     <div className="bh-card p-3">
-      <h3 className="bh-display text-sm font-bold text-bh-magenta mb-2 tracking-wider">♥ {title.toUpperCase()}</h3>
+      <h3 className="bh-display text-sm font-bold text-bh-magenta mb-2 tracking-wider">{title.toUpperCase()}</h3>
       {rows.length === 0 ? (
         <p className="text-xs text-bh-dim">No votes yet.</p>
       ) : (
@@ -218,6 +274,60 @@ function FanBoard({ title, rows }: { title: string; rows: FanRow[] }) {
           ))}
         </ol>
       )}
+    </div>
+  )
+}
+
+function TeamAssetsModal({ standing, onClose }: { standing: Standing; onClose: () => void }) {
+  const team = standing.team
+  const links = [
+    ['Pitch', team.pitchUrl],
+    ['Slides', team.slideDeckUrl],
+    ['Wireframe', team.wireframeUrl],
+    ['Architecture', team.architectureUrl],
+  ] as const
+  const hasLinks = links.some(([, href]) => Boolean(href))
+  return (
+    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm grid place-items-center p-6 z-20">
+      <div className="bh-card p-5 w-full max-w-xl">
+        <div className="flex items-start gap-3">
+          <span className={['mt-1 inline-block w-4 h-4 rounded-full', `bg-team-${team.colour}`].join(' ')} />
+          <div className="flex-1 min-w-0">
+            <div className="bh-display text-xs text-bh-dim tracking-wider">
+              {team.teamNumber ? `TEAM ${team.teamNumber}` : categoryLabel(effectiveCategory(team)).toUpperCase()}
+            </div>
+            <h2 className="bh-display text-2xl font-bold text-white truncate">{team.name}</h2>
+            {team.appName && <p className="text-bh-lime text-sm mt-1">{team.appName}</p>}
+          </div>
+          <button onClick={onClose} className="text-bh-dim hover:text-white text-xl leading-none" aria-label="Close">
+            x
+          </button>
+        </div>
+        {team.description && <p className="mt-4 text-sm text-white/80">{team.description}</p>}
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <Stat label="Lines" value={standing.lines} />
+          <Stat label="Entries" value={standing.entries} />
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          {links.map(([label, href]) =>
+            href ? (
+              <a key={label} href={href} target="_blank" rel="noreferrer" className="bh-btn-ghost text-sm text-center">
+                {label}
+              </a>
+            ) : null,
+          )}
+          {!hasLinks && <p className="col-span-2 text-sm text-bh-dim">No asset links loaded for this team yet.</p>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md ring-1 ring-bh-line bg-black/30 px-3 py-2">
+      <div className="text-xs text-bh-dim">{label}</div>
+      <div className="bh-display text-xl font-bold text-white tabular-nums">{value}</div>
     </div>
   )
 }

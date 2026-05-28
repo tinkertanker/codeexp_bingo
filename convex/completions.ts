@@ -4,6 +4,8 @@ import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/s
 import { assertEligible } from './eligibility'
 import { effectiveCategory, isSquareReleased } from './lib'
 
+const APPROACH_LIMIT_PER_TEAM = 10
+
 async function findExisting(
   ctx: MutationCtx,
   teamId: Id<'teams'>,
@@ -25,6 +27,30 @@ async function upsert(
     return existing._id
   }
   return await ctx.db.insert('squareCompletions', payload)
+}
+
+async function assertScannedTeamApproachLimit(
+  ctx: MutationCtx,
+  scannedTeamId: Id<'teams'>,
+  excludeCompletionId?: Id<'squareCompletions'>,
+): Promise<void> {
+  const completions = await ctx.db
+    .query('squareCompletions')
+    .withIndex('by_scanned_team_id', (q) => q.eq('scannedTeamId', scannedTeamId))
+    .filter((q) => q.neq(q.field('status'), 'rejected'))
+    .take(APPROACH_LIMIT_PER_TEAM + 1)
+
+  let counted = 0
+  for (const completion of completions) {
+    if (completion._id === excludeCompletionId) continue
+    counted++
+    if (counted >= APPROACH_LIMIT_PER_TEAM) {
+      const scannedTeam = await ctx.db.get(scannedTeamId)
+      throw new Error(
+        `${scannedTeam?.name ?? 'This team'} has already been approached ${APPROACH_LIMIT_PER_TEAM} times. Please find another team.`,
+      )
+    }
+  }
 }
 
 // (3) Blue squares now require each scan to be a different *team* (not just different
@@ -115,6 +141,8 @@ export const submitScanTeam = mutation({
       }
       await assertEligible(ctx, args.scannedTeamId, args.squareId)
     }
+    const existing = await findExisting(ctx, args.teamId, args.squareId)
+    await assertScannedTeamApproachLimit(ctx, args.scannedTeamId, existing?._id)
     await upsert(ctx, {
       teamId: args.teamId,
       squareId: args.squareId,
@@ -142,6 +170,8 @@ export const submitScanTeamWithAnswer = mutation({
     if (square.enforceColourDistinct) {
       await checkBlueDistinctTeamRule(ctx, args.teamId, args.squareId, args.scannedTeamId)
     }
+    const existing = await findExisting(ctx, args.teamId, args.squareId)
+    await assertScannedTeamApproachLimit(ctx, args.scannedTeamId, existing?._id)
     await upsert(ctx, {
       teamId: args.teamId,
       squareId: args.squareId,
@@ -161,6 +191,11 @@ export const submitPhotoWithTeam = mutation({
   },
   handler: async (ctx: MutationCtx, args) => {
     await assertCanSubmit(ctx, args.teamId, args.squareId)
+    if (args.scannedTeamId === args.teamId) {
+      throw new Error("This square needs a photo with another team — you can't scan yourself here.")
+    }
+    const existing = await findExisting(ctx, args.teamId, args.squareId)
+    await assertScannedTeamApproachLimit(ctx, args.scannedTeamId, existing?._id)
     const id = await upsert(ctx, {
       teamId: args.teamId,
       squareId: args.squareId,
@@ -242,6 +277,21 @@ export const submitIgUrl = mutation({
 })
 
 export const submitBoothQr = mutation({
+  args: {
+    teamId: v.id('teams'),
+    squareId: v.id('bingoSquares'),
+  },
+  handler: async (ctx: MutationCtx, args) => {
+    await assertCanSubmit(ctx, args.teamId, args.squareId)
+    await upsert(ctx, {
+      teamId: args.teamId,
+      squareId: args.squareId,
+      status: 'approved',
+    })
+  },
+})
+
+export const submitClaimQr = mutation({
   args: {
     teamId: v.id('teams'),
     squareId: v.id('bingoSquares'),

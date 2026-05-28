@@ -71,6 +71,7 @@ export default function AiSubmission() {
         <p className="text-sm text-bh-dim">
           Submit your "Best use of AI" entry for DSTA to judge. Upload your file (any format) to Google Drive, set
           sharing to <strong className="text-white">"Anyone with the link"</strong>, and paste the link below.
+          Private links will get a very direct complaint from the checker.
         </p>
         <div
           className={[

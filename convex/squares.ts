@@ -11,6 +11,16 @@ export const list = query({
   },
 })
 
+export const getByClaimSlug = query({
+  args: { claimSlug: v.string() },
+  handler: async (ctx: QueryCtx, { claimSlug }) => {
+    return await ctx.db
+      .query('bingoSquares')
+      .withIndex('by_claim_slug', (q) => q.eq('claimSlug', claimSlug.trim()))
+      .unique()
+  },
+})
+
 // (4b) Admin schedule editor. Pass releaseAt to set, clearReleaseAt to unset.
 // manuallyReleased: true (release now), false (force lock), or null (revert to auto).
 export const adminUpdateSchedule = mutation({

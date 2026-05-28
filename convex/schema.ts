@@ -45,6 +45,7 @@ export const mentorActionKind = v.union(
   v.literal('reject_eligibility'),
   v.literal('set_category'),
   v.literal('set_problem_statement'),
+  v.literal('update_team_metadata'),
   v.literal('schedule_square'),
 )
 
@@ -57,6 +58,13 @@ export default defineSchema({
     category: v.optional(teamCategory),
     // DSTA problem-statement / mission id (see convex/problemStatements.ts). Used to sort the TV board.
     problemStatement: v.optional(v.string()),
+    teamNumber: v.optional(v.string()),
+    appName: v.optional(v.string()),
+    description: v.optional(v.string()),
+    pitchUrl: v.optional(v.string()),
+    slideDeckUrl: v.optional(v.string()),
+    wireframeUrl: v.optional(v.string()),
+    architectureUrl: v.optional(v.string()),
   })
     .index('by_token', ['token'])
     .index('by_colour', ['colour']),
@@ -74,7 +82,11 @@ export default defineSchema({
     manuallyReleased: v.optional(v.boolean()),
     // (5) Only teams of this category see/can complete this square. Others see a placeholder.
     restrictToCategory: v.optional(teamCategory),
-  }).index('by_position', ['position']),
+    // Optional slug used by fixed event/booth QR posters, e.g. /claim/deepfake.
+    claimSlug: v.optional(v.string()),
+  })
+    .index('by_position', ['position'])
+    .index('by_claim_slug', ['claimSlug']),
 
   squareCompletions: defineTable({
     teamId: v.id('teams'),
@@ -90,7 +102,8 @@ export default defineSchema({
   })
     .index('by_team', ['teamId'])
     .index('by_team_and_square', ['teamId', 'squareId'])
-    .index('by_status', ['status']),
+    .index('by_status', ['status'])
+    .index('by_scanned_team_id', ['scannedTeamId']),
 
   mentorActions: defineTable({
     mentorName: v.string(),

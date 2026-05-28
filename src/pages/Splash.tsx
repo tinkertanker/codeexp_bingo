@@ -34,10 +34,10 @@ export default function Splash() {
           />
           <div className="bh-display text-bh-dim text-xs mb-2">— BrainHack 2026 —</div>
           <h1 className="bh-display text-3xl font-extrabold mb-1 text-white">
-            CODE_EXP <span className="text-bh-lime">BINGO</span>
+            CODE_EXP <span className="text-bh-lime">FINALS</span>
           </h1>
           <p className="text-bh-dim text-sm mb-6">
-            You need a magic link to play. Check your team's Discord channel — or ask a mentor.
+            You need a magic link for your team hub. Check your team's Discord channel — or ask a mentor.
           </p>
           <p className="text-xs text-bh-dim/80 mb-6">
             Already have one? It looks like <code className="font-mono text-bh-lime">/t/&lt;token&gt;</code>. Open it on this device and you'll be logged in as your team.

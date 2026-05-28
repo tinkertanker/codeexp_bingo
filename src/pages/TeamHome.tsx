@@ -61,7 +61,9 @@ export default function TeamHome() {
         />
         <EligibilityCard team={data.team} squares={data.squares} />
         <FanFavCard team={data.team} />
-        <div className="mt-6 grid grid-cols-2 gap-2">
+        <div className="mt-6">
+          <h2 className="bh-display text-xs tracking-wider text-bh-dim mb-2">CODE_EXP actions</h2>
+          <div className="grid grid-cols-2 gap-2">
           <Link to={`/t/${data.team.token}/project`} className="bh-btn-primary text-sm">
             Project submission
           </Link>
@@ -69,8 +71,9 @@ export default function TeamHome() {
             Best use of AI
           </Link>
           <Link to="/scoreboard" className="bh-btn-ghost text-sm col-span-2">
-            Scoreboard
+            Live event screen
           </Link>
+          </div>
         </div>
       </div>
     </div>

@@ -39,6 +39,9 @@ See `docs/CONVEX_BOOTSTRAP.md` for fuller setup notes.
 | `VITE_ORGANISER_NAMES` | Comma-separated names allowed to flip game state and run the lucky draw (e.g. `YJ,Marcus`) |
 
 Server-side equivalents `ADMIN_PASSCODE` and `ORGANISER_NAMES` must match — set them with `npx convex env set`.
+Optional server-side AI complaint generation for failed Drive-link checks uses `OPENAI_API_KEY`,
+`OPENAI_BASE_URL` (defaults to `https://api.openai.com/v1`), and `OPENAI_MODEL` (defaults to
+`gpt-4.1-mini`). Set these with `npx convex env set`; they are not frontend vars.
 
 ## What's where
 

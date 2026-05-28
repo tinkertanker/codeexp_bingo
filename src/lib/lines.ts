@@ -7,8 +7,7 @@ const LINES: number[][] = (() => {
   return out
 })()
 
-// (5) `effectivelyFilledPositions` = completed by this team OR locked for the other category.
-// Cat2 teams get the locked AI square auto-filled so they still have a fair shot at the draw.
+// `effectivelyFilledPositions` = completed by this team OR locked for the other category.
 export function countCompletedLines(effectivelyFilledPositions: Set<number>): number {
   let n = 0
   for (const line of LINES) {

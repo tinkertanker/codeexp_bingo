@@ -98,7 +98,7 @@ function Verification({ team, square, onSubmit }: VerifProps) {
     case 'ig_url_mentor':
       return <IgUrlFlow team={team} square={square} onSubmit={onSubmit} />
     case 'booth_qr':
-      return <BoothQrHint />
+      return <ClaimQrHint square={square} />
   }
 }
 
@@ -442,12 +442,17 @@ function IgUrlFlow({ team, square, onSubmit }: VerifProps) {
   )
 }
 
-function BoothQrHint() {
+function ClaimQrHint({ square }: { square: BingoSquare }) {
+  const isArrival = square.claimSlug === 'arrive-9am'
+  const isDeepfake = square.claimSlug === 'deepfake'
   return (
     <div className="space-y-3 p-4 bh-card">
       <p className="text-sm text-white/80">
-        Head to the Deepfake booth at the tech showcase. Scan the QR poster there with your phone's camera (or any QR
-        scanner) — it'll mark this square as complete.
+        {isArrival
+          ? 'Scan the CODE_EXP briefing QR with your phone camera during the 9am briefing. It will mark this square as complete.'
+          : isDeepfake
+            ? "Complete the Deepfake booth challenge, then scan the booth QR with your phone camera. It'll mark this square as complete."
+            : "Scan the event QR with your phone camera. It'll mark this square as complete."}
       </p>
     </div>
   )
