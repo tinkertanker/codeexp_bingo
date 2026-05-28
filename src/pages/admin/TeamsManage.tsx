@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import AdminLayout from '../../components/AdminLayout'
 import { api } from '../../../convex/_generated/api'
+import { CATEGORIES, categoryLabel } from '../../lib/categories'
+import { PROBLEM_STATEMENTS, problemStatementMission } from '../../lib/problemStatements'
 import { teamMagicLink } from '../../lib/qr'
 import type { Team, TeamCategory, TeamColour, TeamId } from '../../lib/types'
 
 const COLOURS: TeamColour[] = ['red', 'blue', 'green', 'yellow']
-const CATEGORIES: TeamCategory[] = ['cat1', 'cat2']
 
 export default function TeamsManage() {
   return <AdminLayout>{(creds) => <Manage mentorName={creds.name} passcode={creds.passcode} />}</AdminLayout>
@@ -17,11 +18,13 @@ function Manage({ mentorName, passcode }: { mentorName: string; passcode: string
   const createTeam = useMutation(api.teams.create)
   const regenerateToken = useMutation(api.teams.regenerateToken)
   const setCategory = useMutation(api.teams.setCategory)
+  const setProblemStatement = useMutation(api.teams.setProblemStatement)
 
   const [error, setError] = useState<string | null>(null)
   const [newName, setNewName] = useState('')
   const [newColour, setNewColour] = useState<TeamColour>('red')
   const [newCategory, setNewCategory] = useState<TeamCategory>('cat1')
+  const [newProblem, setNewProblem] = useState('')
   const [creating, setCreating] = useState(false)
   const [copyId, setCopyId] = useState<TeamId | null>(null)
 
@@ -46,6 +49,7 @@ function Manage({ mentorName, passcode }: { mentorName: string; passcode: string
         name: newName.trim(),
         colour: newColour,
         category: newCategory,
+        problemStatement: newProblem || undefined,
       })
       setNewName('')
     } catch (err) {
@@ -68,6 +72,14 @@ function Manage({ mentorName, passcode }: { mentorName: string; passcode: string
       await setCategory({ passcode, mentorName, teamId: team._id, category })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Set category failed.')
+    }
+  }
+
+  const changeProblem = async (team: Team, problemStatement: string) => {
+    try {
+      await setProblemStatement({ passcode, mentorName, teamId: team._id, problemStatement })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Set problem statement failed.')
     }
   }
 
@@ -115,7 +127,20 @@ function Manage({ mentorName, passcode }: { mentorName: string; passcode: string
               className="mt-1 rounded-md ring-1 ring-bh-line bg-black/40 px-3 py-2 text-sm text-white focus:ring-bh-lime focus:outline-none"
             >
               {CATEGORIES.map((c) => (
-                <option key={c} value={c} className="bg-bh-panel">{c}</option>
+                <option key={c} value={c} className="bg-bh-panel">{categoryLabel(c)}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="bh-display text-[0.65rem] tracking-wider text-bh-dim">Problem statement</span>
+            <select
+              value={newProblem}
+              onChange={(e) => setNewProblem(e.target.value)}
+              className="mt-1 rounded-md ring-1 ring-bh-line bg-black/40 px-3 py-2 text-sm text-white focus:ring-bh-lime focus:outline-none"
+            >
+              <option value="" className="bg-bh-panel">Unassigned</option>
+              {PROBLEM_STATEMENTS.map((p) => (
+                <option key={p.id} value={p.id} className="bg-bh-panel">{p.mission}</option>
               ))}
             </select>
           </label>
@@ -137,7 +162,10 @@ function Manage({ mentorName, passcode }: { mentorName: string; passcode: string
                 <div className="bh-display text-sm font-bold truncate text-white">
                   {t.name}
                   <span className="ml-2 bh-display text-[0.6rem] tracking-widest text-bh-lime">
-                    {t.category ?? 'cat1'}
+                    {categoryLabel(t.category)}
+                  </span>
+                  <span className="ml-2 bh-display text-[0.6rem] tracking-widest text-bh-cyan">
+                    {problemStatementMission(t.problemStatement).toUpperCase()}
                   </span>
                 </div>
                 <div className="text-xs text-bh-dim truncate font-mono">{teamMagicLink(t.token)}</div>
@@ -148,7 +176,17 @@ function Manage({ mentorName, passcode }: { mentorName: string; passcode: string
                 className="rounded-md ring-1 ring-bh-line bg-black/40 px-2 py-1 text-xs text-white focus:ring-bh-lime focus:outline-none"
               >
                 {CATEGORIES.map((c) => (
-                  <option key={c} value={c} className="bg-bh-panel">{c}</option>
+                  <option key={c} value={c} className="bg-bh-panel">{categoryLabel(c)}</option>
+                ))}
+              </select>
+              <select
+                value={t.problemStatement ?? ''}
+                onChange={(e) => changeProblem(t, e.target.value)}
+                className="rounded-md ring-1 ring-bh-line bg-black/40 px-2 py-1 text-xs text-white focus:ring-bh-lime focus:outline-none"
+              >
+                <option value="" className="bg-bh-panel">Unassigned</option>
+                {PROBLEM_STATEMENTS.map((p) => (
+                  <option key={p.id} value={p.id} className="bg-bh-panel">{p.mission}</option>
                 ))}
               </select>
               <button onClick={() => copyLink(t)} className="bh-display px-2 py-1 rounded text-[0.65rem] tracking-wider ring-1 ring-bh-line text-bh-dim hover:text-bh-lime hover:ring-bh-lime/40">

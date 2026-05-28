@@ -44,6 +44,7 @@ export const mentorActionKind = v.union(
   v.literal('approve_eligibility'),
   v.literal('reject_eligibility'),
   v.literal('set_category'),
+  v.literal('set_problem_statement'),
   v.literal('schedule_square'),
 )
 
@@ -52,8 +53,10 @@ export default defineSchema({
     name: v.string(),
     colour: teamColour,
     token: v.string(),
-    // (5) Pre-assigned hackathon category. Undefined treated as cat1 in code.
+    // (5) Pre-assigned hackathon category. cat1 = Beginner, cat2 = Open. Undefined treated as cat1.
     category: v.optional(teamCategory),
+    // DSTA problem-statement / mission id (see convex/problemStatements.ts). Used to sort the TV board.
+    problemStatement: v.optional(v.string()),
   })
     .index('by_token', ['token'])
     .index('by_colour', ['colour']),
@@ -123,13 +126,28 @@ export default defineSchema({
     drawAt: v.optional(v.number()),
   }),
 
-  // (2) Fan-favourites — one vote per voter team, changeable.
+  // (2) Fan-favourites — one ranked ballot per (voter, category). rankedTeamIds is ordered
+  // top→bottom (max 3). Every team votes in BOTH categories. votedTeamId is the legacy
+  // single-pick field, kept optional so old rows still validate; no longer written.
   fanVotes: defineTable({
     voterTeamId: v.id('teams'),
-    votedTeamId: v.id('teams'),
+    category: v.optional(teamCategory),
+    rankedTeamIds: v.optional(v.array(v.id('teams'))),
+    votedTeamId: v.optional(v.id('teams')),
   })
     .index('by_voter', ['voterTeamId'])
-    .index('by_voted', ['votedTeamId']),
+    .index('by_voter_and_category', ['voterTeamId', 'category']),
+
+  // "Best use of AI" submission — one per team. Teams paste a Google Drive link; a Convex
+  // action heuristically verifies it's publicly accessible. Hard deadline enforced server-side.
+  aiSubmissions: defineTable({
+    teamId: v.id('teams'),
+    driveUrl: v.string(),
+    accessible: v.optional(v.boolean()),
+    checkResponse: v.optional(v.any()),
+    checkedAt: v.optional(v.number()),
+    submittedAt: v.number(),
+  }).index('by_team', ['teamId']),
 
   // (4a) Self-declared eligibility for orange "find a team that did X" squares.
   // Mentor approves on the admin panel; scans against this team only succeed once approved.

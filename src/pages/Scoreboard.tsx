@@ -1,47 +1,105 @@
+import { useState } from 'react'
 import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import Leaderboard from '../components/Leaderboard'
 import PhotoWall from '../components/PhotoWall'
+import { categoryLabel } from '../lib/categories'
+import { PROBLEM_STATEMENTS } from '../lib/problemStatements'
+import { checkScoreboardPasscode, isScoreboardUnlocked } from '../lib/scoreboard'
 import { computeStandings, type Standing } from '../lib/standings'
-import type { DrawWinner, TeamId } from '../lib/types'
+import { effectiveCategory } from '../lib/squares'
+import { saveScoreboardPass } from '../lib/token'
+import type { DrawWinner, TeamCategory, TeamId } from '../lib/types'
 
 export default function Scoreboard() {
+  const [unlocked, setUnlocked] = useState(isScoreboardUnlocked())
+  if (!unlocked) return <ScoreboardGate onUnlock={() => setUnlocked(true)} />
+  return <ScoreboardView />
+}
+
+function ScoreboardGate({ onUnlock }: { onUnlock: () => void }) {
+  const [value, setValue] = useState('')
+  const [error, setError] = useState(false)
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (checkScoreboardPasscode(value)) {
+      saveScoreboardPass(value.trim())
+      onUnlock()
+    } else {
+      setError(true)
+    }
+  }
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center p-6">
+      <form onSubmit={submit} className="bh-card p-6 w-full max-w-sm space-y-4">
+        <h1 className="bh-display text-xl font-bold text-white">
+          CODE_EXP <span className="text-bh-lime">BINGO</span>
+        </h1>
+        <p className="text-sm text-bh-dim">This screen is for the venue TVs. Enter the screen passcode to continue.</p>
+        <input
+          type="password"
+          autoFocus
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value)
+            setError(false)
+          }}
+          placeholder="Screen passcode"
+          className="w-full rounded-md ring-1 ring-bh-line bg-black/40 px-3 py-2 text-sm text-white focus:ring-bh-lime focus:outline-none"
+        />
+        {error && <p className="text-xs text-bh-magenta">Wrong passcode.</p>}
+        <button type="submit" className="bh-btn-primary w-full">Unlock</button>
+      </form>
+    </div>
+  )
+}
+
+function ScoreboardView() {
   const bundle = useQuery(api.scoreboard.bundle)
+  const [categoryFilter, setCategoryFilter] = useState<'all' | TeamCategory>('all')
+  const [groupByMission, setGroupByMission] = useState(false)
 
   if (bundle === undefined) {
     return <div className="p-8 text-bh-dim bg-black min-h-screen bh-display">Loading scoreboard…</div>
   }
 
-  const standings: Standing[] = computeStandings(
-    bundle.teams,
-    bundle.squares,
-    bundle.completions,
-    bundle.submissions,
-  )
+  const standings: Standing[] = computeStandings(bundle.teams, bundle.squares, bundle.completions, bundle.submissions)
   const teamsById = new Map(bundle.teams.map((t) => [t._id, t] as const))
   const winners: DrawWinner[] = bundle.game?.drawWinners ?? []
   const winnerIds = new Set<TeamId>(winners.map((w) => w.teamId))
 
+  const filtered =
+    categoryFilter === 'all' ? standings : standings.filter((s) => effectiveCategory(s.team) === categoryFilter)
+
+  const groups = [
+    ...PROBLEM_STATEMENTS.map((p) => ({
+      id: p.id,
+      label: p.mission,
+      rows: filtered.filter((s) => s.team.problemStatement === p.id),
+    })),
+    { id: 'unassigned', label: 'Unassigned', rows: filtered.filter((s) => !s.team.problemStatement) },
+  ].filter((g) => g.rows.length > 0)
+
   return (
     <div className="relative min-h-screen w-full bg-black text-white overflow-hidden">
-      {/* Pixel-grid backdrop + radial glow */}
-      <div className="absolute inset-0 pointer-events-none"
-           style={{
-             backgroundImage:
-               'radial-gradient(ellipse at 30% 0%, rgba(23,125,129,0.35), transparent 55%),' +
-               'radial-gradient(ellipse at 80% 100%, rgba(166,251,0,0.18), transparent 55%),' +
-               'linear-gradient(rgba(166,251,0,0.05) 1px, transparent 1px),' +
-               'linear-gradient(90deg, rgba(166,251,0,0.05) 1px, transparent 1px)',
-             backgroundSize: 'auto, auto, 40px 40px, 40px 40px',
-           }} />
-      {/* Stripe accents */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            'radial-gradient(ellipse at 30% 0%, rgba(23,125,129,0.35), transparent 55%),' +
+            'radial-gradient(ellipse at 80% 100%, rgba(166,251,0,0.18), transparent 55%),' +
+            'linear-gradient(rgba(166,251,0,0.05) 1px, transparent 1px),' +
+            'linear-gradient(90deg, rgba(166,251,0,0.05) 1px, transparent 1px)',
+          backgroundSize: 'auto, auto, 40px 40px, 40px 40px',
+        }}
+      />
       <div className="absolute top-6 left-10 h-1 w-40 bg-bh-lime" />
       <div className="absolute top-3 left-56 h-1 w-12 bg-bh-magenta" />
       <div className="absolute top-12 right-24 h-1 w-24 bg-bh-orange" />
       <div className="absolute bottom-10 right-40 h-1 w-32 bg-bh-cyan" />
 
       <div className="relative grid h-screen" style={{ gridTemplateColumns: '1.05fr 1fr' }}>
-        <section className="p-8 flex flex-col">
+        <section className="p-8 flex flex-col min-h-0">
           <header className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <img src="/code-exp-logo.png" alt="" className="w-14 h-14 drop-shadow-[0_0_18px_rgba(166,251,0,0.5)]" />
@@ -63,11 +121,34 @@ export default function Scoreboard() {
               </span>
             )}
           </header>
+
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <SegButton active={categoryFilter === 'all'} onClick={() => setCategoryFilter('all')}>All</SegButton>
+            <SegButton active={categoryFilter === 'cat1'} onClick={() => setCategoryFilter('cat1')}>{categoryLabel('cat1')}</SegButton>
+            <SegButton active={categoryFilter === 'cat2'} onClick={() => setCategoryFilter('cat2')}>{categoryLabel('cat2')}</SegButton>
+            <span className="w-px h-5 bg-bh-line mx-1" />
+            <SegButton active={!groupByMission} onClick={() => setGroupByMission(false)}>Overall</SegButton>
+            <SegButton active={groupByMission} onClick={() => setGroupByMission(true)}>By mission</SegButton>
+          </div>
+
           <div className="text-xs text-bh-dim mb-3 bh-display tracking-wider">
             <span className="text-bh-lime">L</span> = lines · <span className="text-white">TOTAL</span> = lucky-draw entries (lines + clean-ZIP bonus)
           </div>
-          <div className="flex-1 min-h-0 overflow-hidden bh-card p-2">
-            <Leaderboard standings={standings} highlightTeamIds={winnerIds} />
+          <div className="flex-1 min-h-0 overflow-auto bh-card p-2">
+            {groupByMission ? (
+              <div className="space-y-4">
+                {groups.map((g) => (
+                  <div key={g.id}>
+                    <h3 className="bh-display text-sm text-bh-cyan tracking-wider mb-1">
+                      {g.label} <span className="text-bh-dim">· {g.rows.length}</span>
+                    </h3>
+                    <Leaderboard standings={g.rows} highlightTeamIds={winnerIds} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Leaderboard standings={filtered} highlightTeamIds={winnerIds} />
+            )}
           </div>
         </section>
         <section className="p-6 flex flex-col min-h-0">
@@ -75,24 +156,10 @@ export default function Scoreboard() {
           <div className="flex-1 min-h-0 overflow-hidden">
             <PhotoWall photos={bundle.photos} teamsById={teamsById} cap={18} />
           </div>
-          {bundle.fanFavs.length > 0 && (
-            <div className="mt-4 bh-card p-3">
-              <h3 className="bh-display text-sm font-bold text-bh-magenta mb-2 tracking-wider">
-                ♥ FAN FAVOURITES <span className="text-bh-dim font-normal">— {bundle.totalFanVotes} vote{bundle.totalFanVotes === 1 ? '' : 's'}</span>
-              </h3>
-              <ol className="space-y-1">
-                {bundle.fanFavs
-                  .filter((f) => f.votes > 0)
-                  .slice(0, 5)
-                  .map((f, i) => (
-                    <li key={f.team._id} className="flex items-center gap-2 text-sm">
-                      <span className="bh-display w-5 text-right text-xs text-bh-dim tabular-nums">{i + 1}</span>
-                      <span className={['inline-block w-2.5 h-2.5 rounded-full', `bg-team-${f.team.colour}`].join(' ')} />
-                      <span className="flex-1 truncate text-white">{f.team.name}</span>
-                      <span className="bh-display text-bh-magenta font-extrabold tabular-nums">{f.votes}</span>
-                    </li>
-                  ))}
-              </ol>
+          {(bundle.fanFavs.cat1.rows.length > 0 || bundle.fanFavs.cat2.rows.length > 0) && (
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <FanBoard title={categoryLabel('cat1')} rows={bundle.fanFavs.cat1.rows} />
+              <FanBoard title={categoryLabel('cat2')} rows={bundle.fanFavs.cat2.rows} />
             </div>
           )}
         </section>
@@ -112,6 +179,44 @@ export default function Scoreboard() {
               )
             })}
         </div>
+      )}
+    </div>
+  )
+}
+
+function SegButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={[
+        'bh-display px-3 py-1 rounded text-xs tracking-wider transition ring-1',
+        active ? 'bg-bh-lime text-black ring-bh-lime shadow-neon-lime' : 'text-bh-dim ring-bh-line hover:text-white hover:bg-bh-panel',
+      ].join(' ')}
+    >
+      {children}
+    </button>
+  )
+}
+
+type FanRow = { team: { _id: string; name: string; colour: string }; points: number }
+
+function FanBoard({ title, rows }: { title: string; rows: FanRow[] }) {
+  return (
+    <div className="bh-card p-3">
+      <h3 className="bh-display text-sm font-bold text-bh-magenta mb-2 tracking-wider">♥ {title.toUpperCase()}</h3>
+      {rows.length === 0 ? (
+        <p className="text-xs text-bh-dim">No votes yet.</p>
+      ) : (
+        <ol className="space-y-1">
+          {rows.slice(0, 5).map((f, i) => (
+            <li key={f.team._id} className="flex items-center gap-2 text-sm">
+              <span className="bh-display w-5 text-right text-xs text-bh-dim tabular-nums">{i + 1}</span>
+              <span className={['inline-block w-2.5 h-2.5 rounded-full', `bg-team-${f.team.colour}`].join(' ')} />
+              <span className="flex-1 truncate text-white">{f.team.name}</span>
+              <span className="bh-display text-bh-magenta font-extrabold tabular-nums">{f.points}</span>
+            </li>
+          ))}
+        </ol>
       )}
     </div>
   )

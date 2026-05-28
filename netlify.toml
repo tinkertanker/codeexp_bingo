@@ -14,4 +14,5 @@
   VITE_CONVEX_URL = "Required - Convex deployment URL (https://<name>.convex.cloud), printed by `npx convex deploy`"
   VITE_ADMIN_PASSCODE = "Required - Shared mentor passcode (must match Convex env ADMIN_PASSCODE)"
   VITE_ORGANISER_NAMES = "Required - Comma-separated organiser names (must match Convex env ORGANISER_NAMES)"
+  VITE_SCOREBOARD_PASSCODE = "Required - Passcode to unlock the /scoreboard TV view (frontend-only; no Convex counterpart)"
   CONVEX_DEPLOY_KEY = "Required - Project deploy key from Convex dashboard → Settings → Deploy keys; lets the Netlify build push backend changes"

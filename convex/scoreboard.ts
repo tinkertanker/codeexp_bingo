@@ -1,4 +1,5 @@
 import { query, type QueryCtx } from './_generated/server'
+import { computeRankedTally } from './fanVotes'
 
 export const bundle = query({
   args: {},
@@ -15,15 +16,9 @@ export const bundle = query({
     const photos = await Promise.all(
       photosRaw.map(async (p) => ({ ...p, url: await ctx.storage.getUrl(p.storageId) })),
     )
-    // (2) Compact fan-fav tally embedded so the scoreboard renders in one round-trip.
-    const fanCounts = new Map<string, number>()
-    for (const v of fanVotesRaw) {
-      fanCounts.set(v.votedTeamId, (fanCounts.get(v.votedTeamId) ?? 0) + 1)
-    }
-    const fanFavs = teams
-      .map((t) => ({ team: t, votes: fanCounts.get(t._id) ?? 0 }))
-      .sort((a, b) => b.votes - a.votes || a.team.name.localeCompare(b.team.name))
-    return { teams, squares, completions, submissions, game, photos, fanFavs, totalFanVotes: fanVotesRaw.length }
+    // (2) Ranked per-category fan-fav tally embedded so the scoreboard renders in one round-trip.
+    const fanFavs = computeRankedTally(fanVotesRaw, teams)
+    return { teams, squares, completions, submissions, game, photos, fanFavs }
   },
 })
 

@@ -20,8 +20,8 @@ type SeedSquare = {
   restrictToCategory?: 'cat1' | 'cat2'
 }
 
-// (5) Position 15 replaced: "User onboarding" → "Innovative use of AI" locked to cat1.
-// cat2 teams will see a category-locked placeholder tile in its place.
+// (5) Position 15 replaced: "User onboarding" → "Innovative use of AI" locked to cat2 (Open).
+// cat1 (Beginner) teams see a category-locked placeholder tile in its place.
 const SQUARES: SeedSquare[] = [
   { position: 0,  category: 'blue',   title: 'Tech stack',                  description: 'Ask another team what tech stack they used.',                                    verificationKind: 'scan_team_with_answer', enforceColourDistinct: true },
   { position: 1,  category: 'grey',   title: 'Photo with a team',           description: 'Take a team photo with another team.',                                            verificationKind: 'photo_with_team',       enforceColourDistinct: false },
@@ -38,7 +38,7 @@ const SQUARES: SeedSquare[] = [
   { position: 12, category: 'orange', title: 'Testing',                     description: 'Find a team that did testing (e.g. shows test data / test cases).',               verificationKind: 'scan_team',             enforceColourDistinct: false },
   { position: 13, category: 'orange', title: 'Proper logging',              description: 'Find a team that has proper logging (info / warning / error).',                   verificationKind: 'scan_team',             enforceColourDistinct: false },
   { position: 14, category: 'blue',   title: "Feature you're proud of",     description: "Ask another team what feature they're most proud of.",                            verificationKind: 'scan_team_with_answer', enforceColourDistinct: true },
-  { position: 15, category: 'orange', title: 'Innovative use of AI',        description: 'Find a team that has an innovative use of AI.',                                   verificationKind: 'scan_team',             enforceColourDistinct: false, restrictToCategory: 'cat1' },
+  { position: 15, category: 'orange', title: 'Innovative use of AI',        description: 'Find a team that has an innovative use of AI.',                                   verificationKind: 'scan_team',             enforceColourDistinct: false, restrictToCategory: 'cat2' },
 ]
 
 export const seedAll = mutation({
