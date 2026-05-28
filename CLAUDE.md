@@ -10,7 +10,7 @@ Replaces the original sticker/paper bingo card. Each of ~40 teams plays a 4×4 b
 
 - React 19 + TypeScript + Vite 6 + Tailwind 3
 - **Convex** (database + reactive queries + storage + actions). All backend code lives under `convex/`.
-- Netlify hosting
+- **Cloudflare Pages** hosting (SPA fallback via `public/_redirects`). See §Deployment.
 - `qrcode` (render) + `html5-qrcode` (scan, browser camera)
 - `jszip` (client-side ZIP central-directory inspection)
 - GitHub REST API via a Convex action (`convex/githubCheck.ts`) — server-side fetch, not subject to per-IP rate limits
@@ -30,7 +30,7 @@ Same 4×4 grid for everyone. Three categories from DSTA's brief plus one wild ca
 
 | Category | Count | Verification |
 |---|---|---|
-| Orange — "Find a team that did X" | 6 | Scan another team's QR. Auto-approves. The scanned team must have a mentor-approved self-declaration (`teamEligibility`) for that square — see §Self-declared eligibility. Position 15 is "Innovative use of AI", category-locked to cat1. |
+| Orange — "Find a team that did X" | 6 | Scan another team's QR. Auto-approves. The scanned team must have a mentor-approved self-declaration (`teamEligibility`) for that square — see §Self-declared eligibility. Position 15 is "Innovative use of AI", category-locked to cat2 (Open). |
 | Blue — "Ask another team a question" | 4 | Scan another team + type their answer. Distinct-team rule: across the 4 blue squares, no two scans may be the same team (enforced server-side in `convex/completions.ts`). |
 | Grey — Photo with team | 1 | Scan team + upload photo. Auto-approve. |
 | Grey — Photo with mentor / on stage | 2 | Upload photo. Mentor approves. |
@@ -46,9 +46,13 @@ Orange-square completion is no longer pure honour-code. Workflow:
 2. A mentor approves on `/admin/queue` (Eligibility section).
 3. Only then can another team scan that team's QR to claim the matching orange square.
 
-### Team categories (cat1 / cat2)
+### Team categories (cat1 = Beginner / cat2 = Open)
 
-Each team is assigned `cat1` or `cat2` (managed on `/admin/teams`). Squares may set `restrictToCategory`; teams from the other category see a "Not your category" placeholder tile and the square is auto-credited toward their bingo lines so they aren't penalised in the lucky draw. Position 15 "Innovative use of AI" is locked to cat1.
+Each team is assigned `cat1` or `cat2` (managed on `/admin/teams`). **`cat1` = Beginner, `cat2` = Open** — these labels live in `src/lib/categories.ts`; the DB still stores `cat1`/`cat2`. Squares may set `restrictToCategory`; teams from the other category see a "Not your category" placeholder tile and the square is auto-credited toward their bingo lines so they aren't penalised in the lucky draw. Position 15 "Innovative use of AI" is locked to `cat2` (Open).
+
+### Problem statements
+
+Each team is tagged with one of three DSTA missions — **Digital Shield / Service Edge / Quick Aid** — on `/admin/teams`. The id is stored in `teams.problemStatement`; the canonical list lives in `src/lib/problemStatements.ts` (and a server-side allow-list in `convex/problemStatements.ts`). The scoreboard can group/sort by mission.
 
 ### Timed squares
 
@@ -56,7 +60,11 @@ Each `bingoSquare` may carry `releaseAt` (ms epoch) and/or `manuallyReleased` (t
 
 ### Fan-favourites voting
 
-Independent of the bingo card. Each team picks one favourite (not themselves) on `/t/:token`; vote stored in `fanVotes`, changeable any time. Tally shown on `/admin/fanfavs` and the public scoreboard. Voting is allowed regardless of `gameState.isOpen`.
+Independent of the bingo card. Each team casts a **ranked top-3 ballot for *each* category** (Beginner + Open) on `/t/:token` — so there are two winners, "best Beginner" and "best Open". Scoring is Borda: 1st = 3 pts, 2nd = 2, 3rd = 1. Self-vote and duplicate picks are blocked client- and server-side. One row per (voter, category) in `fanVotes` (`rankedTeamIds` ordered). Tallies shown on `/admin/fanfavs` and the public scoreboard. Voting is allowed regardless of `gameState.isOpen`.
+
+### Best use of AI submission
+
+A judged DSTA award, separate from the lucky-draw project submission. On `/t/:token/ai-submission` a team pastes a **Google Drive link** (any file format); a Convex action (`convex/aiCheck.ts`) does a best-effort, key-free check that the link is publicly accessible (detects the sign-in / "request access" responses). Stored in `aiSubmissions`, one per team, listed for judges on `/admin/ai`. **Hard deadline enforced server-side: 10 Jun 2026, 18:00 SGT** (`AI_SUBMISSION_DEADLINE_MS` in `convex/aiSubmissions.ts`, mirrored in the page's display string — keep both in sync). No file-size cap (the file lives in the team's Drive, not ours).
 
 ## Lucky draw
 
@@ -72,26 +80,29 @@ Independent of the bingo card. Each team picks one favourite (not themselves) on
 - `/t/:token/square/:position` — square detail (verification UI per `verificationKind`).
 - `/t/:token/qr` — big QR for other teams to scan.
 - `/t/:token/project` — GitHub URL + ZIP upload.
+- `/t/:token/ai-submission` — "Best use of AI" Google Drive link + accessibility check.
 - `/booth/deepfake` — auto-completes the booth square.
-- `/scoreboard` — public TV view. Designed for 1920×1080.
+- `/scoreboard` — TV view (1920×1080). **Gated by `VITE_SCOREBOARD_PASSCODE`** (entered once per device, kept in localStorage). Interactive: filter Beginner/Open, group by mission.
 
 **Admin (passcode + name)**
 - `/admin` — login.
 - `/admin/queue` — pending eligibility declarations + photo / IG approvals.
-- `/admin/teams` — manage 40 teams (colour + category) + magic links.
+- `/admin/teams` — manage 40 teams (colour + category + problem statement) + magic links.
 - `/admin/game` — open/close game + live stats + per-square release schedule.
-- `/admin/fanfavs` — fan-favourite vote tally.
+- `/admin/fanfavs` — fan-favourite ranked tallies (per category).
+- `/admin/ai` — "Best use of AI" submissions list for judges.
 - `/admin/draw` — run the lucky draw (organiser-only).
 
 ## Schema
 
 Source of truth: `convex/schema.ts`. Tables (camelCase, with `_id` and `_creationTime` system fields):
 
-- `teams` — token, colour group, category (`cat1` / `cat2`). Indexed by `token`, `colour`.
+- `teams` — token, colour group, category (`cat1` = Beginner / `cat2` = Open), optional `problemStatement` id. Indexed by `token`, `colour`.
 - `bingoSquares` — 16 seeded rows. Optional `releaseAt` / `manuallyReleased` (timed-lock), optional `restrictToCategory` (cat lock). Indexed by `position`.
 - `squareCompletions` — status + evidence; one row per (team, square) via the `by_team_and_square` index. Photo evidence is a `Id<'_storage'>` reference, not a path.
 - `teamEligibility` — self-declared orange-square eligibility. One row per (team, square). Status `pending|approved|rejected`. Indexed by `by_team`, `by_team_and_square`, `by_status`.
-- `fanVotes` — one row per voting team. Indexed by `voterTeamId` and `votedTeamId`.
+- `fanVotes` — one **ranked ballot per (voter, category)**: `category` + ordered `rankedTeamIds` (≤3). `votedTeamId` is the deprecated legacy single-pick field (kept optional). Indexed by `by_voter`, `by_voter_and_category`.
+- `aiSubmissions` — "Best use of AI" Drive link, one per team. Holds `driveUrl`, `accessible`, `checkResponse`, `submittedAt`. Indexed by `by_team`.
 - `mentorActions` — audit trail of every admin action.
 - `codeSubmissions` — one per team. Indexed by `teamId`.
 - `photos` — denormalised for the public photo wall. References `_storage` for the file.
@@ -108,7 +119,8 @@ Convex Storage holds all photos and submitted ZIPs. Files are referenced by `Id<
 ```
 VITE_CONVEX_URL=https://<your-deployment>.convex.cloud
 VITE_ADMIN_PASSCODE=change-me
-VITE_ORGANISER_NAMES=YJ,Marcus
+VITE_ORGANISER_NAMES=YJ,Marcus           # note: ORGANISER, singular — a stray "ORGANISERS" silently hides organiser controls
+VITE_SCOREBOARD_PASSCODE=tv-screen       # unlocks /scoreboard on the TVs; frontend-only, no Convex counterpart
 ```
 
 **Convex deployment** (server-side, set via CLI — never reach the client bundle):
@@ -140,12 +152,24 @@ npm run dev
 
 For deeper setup notes see `docs/CONVEX_BOOTSTRAP.md`.
 
+## Deployment (Cloudflare Pages)
+
+Hosting is **Cloudflare Pages** (not Netlify). Configure in the Pages project's build settings:
+
+- **Build command:** `npx convex deploy --cmd 'npm run build'` — deploys the Convex backend (schema + functions) to the prod deployment, then builds the frontend.
+- **Build output directory:** `dist`
+- **SPA fallback:** `public/_redirects` (`/* /index.html 200`) is copied into `dist` by Vite — this makes deep links like `/scoreboard` and `/t/<token>` work.
+- **Environment variables** (Pages dashboard → Settings → Environment variables): `VITE_CONVEX_URL`, `VITE_ADMIN_PASSCODE`, `VITE_ORGANISER_NAMES` (singular!), `VITE_SCOREBOARD_PASSCODE`, and `CONVEX_DEPLOY_KEY` (from Convex dashboard → Settings → Deploy keys — lets the build push the backend).
+
+After a deploy that changes the seed (e.g. the AI-square category lock), run the seed against **prod** once: `npx convex run seed:seedAll '{ "passcode": "<prod-passcode>" }'` (with the prod deploy key in the environment).
+
 ## Pre-event setup tasks
 
-- Add 40 teams via `/admin/teams` (or write a seed script that calls `api.teams.create`).
+- Add 40 teams via `/admin/teams` (or write a seed script that calls `api.teams.create`). **Set each team's category (Beginner/Open) and problem statement (Digital Shield / Service Edge / Quick Aid)** — the scoreboard sort and the per-category fan-fav boards depend on these.
 - Print 40 team magic-link cards. Each card shows: team name, colour group, the team's `/t/<token>` QR. The QR doubles as: (a) the team's "log in here on a fresh phone" link and (b) the QR other teams scan to complete bingo squares.
 - Print one Deepfake-booth poster encoding the URL `/booth/deepfake`.
-- Make sure `ORGANISER_NAMES` is set on the Convex deployment AND mirrored in `VITE_ORGANISER_NAMES` so the draw and game-open/close buttons show for them.
+- Make sure `ORGANISER_NAMES` is set on the Convex deployment AND mirrored in `VITE_ORGANISER_NAMES` (singular spelling!) so the draw and game-open/close buttons show for them.
+- Set `VITE_SCOREBOARD_PASSCODE` and share it with whoever sets up the venue TVs.
 - Decide a memorable passcode and set it on both sides (`VITE_ADMIN_PASSCODE` + `npx convex env set ADMIN_PASSCODE`). Share with mentors via Discord.
 
 ## Implementation status

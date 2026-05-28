@@ -46,23 +46,29 @@ This inserts the 16 bingo squares and ensures a singleton `gameState` row exists
 
 ## Deploying to production
 
+Hosting is **Cloudflare Pages**. The Pages build command runs the Convex deploy for you:
+
 ```bash
-npx convex deploy
+npx convex deploy --cmd 'npm run build'
 ```
 
-Set the production env vars and a deploy hook in your hosting environment (Netlify env vars need `VITE_CONVEX_URL` to point at the prod deployment).
+Set the production env vars in the Cloudflare Pages dashboard (`VITE_CONVEX_URL` pointing at the prod deployment, the `VITE_*` passcodes, and `CONVEX_DEPLOY_KEY` so the build can push the backend). See the §Deployment section in the root `CLAUDE.md` for the full list.
 
 ## File structure
 
 ```
 convex/
 ├── schema.ts              all tables + indexes + shared validators
-├── teams.ts               list, getByToken, create, regenerateToken
+├── teams.ts               list, getByToken, create, regenerateToken, setCategory, setProblemStatement
 ├── squares.ts             list (16 squares, sorted by position)
 ├── completions.ts         submitX mutations (one per verification kind),
 │                          listForTeam, listPending (with hydrated team/square/photoUrl)
+├── eligibility.ts         self-declared orange-square eligibility (declare + mentor approve/reject)
 ├── photos.ts              recent (with hydrated public URLs)
 ├── codeSubmissions.ts     getForTeam, listAll, save (upsert)
+├── aiSubmissions.ts       "Best use of AI" Drive link, deadline-gated save + config + listAll
+├── aiCheck.ts             action (best-effort Google Drive public-accessibility check)
+├── fanVotes.ts            ranked per-category ballots: setBallot, getMyBallots, tallyByCategory
 ├── gameState.ts           get, setOpen
 ├── draw.ts                run (weighted random), clearWinners
 ├── scoreboard.ts          bundle (one query for the whole TV view)
@@ -70,6 +76,8 @@ convex/
 ├── githubCheck.ts         action (server-side fetch to GitHub REST)
 ├── admin.ts               assertAdmin, assertOrganiser, approve/reject mutations
 ├── mentorActions.ts       logMentorAction helper used across mutations
+├── problemStatements.ts   server-side allow-list of problem-statement ids
+├── lib.ts                 shared helpers (isSquareReleased, effectiveCategory)
 ├── seed.ts                idempotent seedAll mutation for the 16 squares
 └── _generated/            auto-generated, never edit by hand
 ```
