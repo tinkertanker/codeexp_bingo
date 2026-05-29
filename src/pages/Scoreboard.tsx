@@ -59,6 +59,7 @@ function ScoreboardGate({ onUnlock }: { onUnlock: () => void }) {
 function ScoreboardView() {
   const bundle = useQuery(api.scoreboard.bundle)
   const [categoryFilter, setCategoryFilter] = useState<'all' | TeamCategory>('all')
+  const [problemFilter, setProblemFilter] = useState('all')
   const [groupByMission, setGroupByMission] = useState(false)
   const [activeTab, setActiveTab] = useState<ScreenTab>('overview')
   const [selectedStanding, setSelectedStanding] = useState<Standing | null>(null)
@@ -71,8 +72,14 @@ function ScoreboardView() {
   const teamsById = new Map(bundle.teams.map((t) => [t._id, t] as const))
   const winners: DrawWinner[] = bundle.game?.drawWinners ?? []
   const winnerIds = new Set<TeamId>(winners.map((w) => w.teamId))
-  const filtered =
+  const categoryFiltered =
     categoryFilter === 'all' ? standings : standings.filter((s) => effectiveCategory(s.team) === categoryFilter)
+  const filtered =
+    problemFilter === 'all'
+      ? categoryFiltered
+      : problemFilter === 'unassigned'
+        ? categoryFiltered.filter((s) => !s.team.problemStatement)
+        : categoryFiltered.filter((s) => s.team.problemStatement === problemFilter)
   const groups = [
     ...PROBLEM_STATEMENTS.map((p) => ({
       id: p.id,
@@ -143,6 +150,19 @@ function ScoreboardView() {
               </>
             )}
           </div>
+
+          {(activeTab === 'overview' || activeTab === 'bingo') && (
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
+              <span className="bh-display text-[0.65rem] text-bh-dim tracking-wider mr-1">Problem</span>
+              <SegButton active={problemFilter === 'all'} onClick={() => setProblemFilter('all')}>All</SegButton>
+              {PROBLEM_STATEMENTS.map((p) => (
+                <SegButton key={p.id} active={problemFilter === p.id} onClick={() => setProblemFilter(p.id)}>
+                  {p.mission}
+                </SegButton>
+              ))}
+              <SegButton active={problemFilter === 'unassigned'} onClick={() => setProblemFilter('unassigned')}>Unassigned</SegButton>
+            </div>
+          )}
 
           {activeTab === 'bingo' && (
             <div className="text-xs text-bh-dim mb-3 bh-display tracking-wider">

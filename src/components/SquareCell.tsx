@@ -61,7 +61,14 @@ export default function SquareCell({ square, status, href, timedLocked, category
         aria-disabled
         aria-label="Mission not yet released"
         title="Mission not yet released"
-      />
+      >
+        <div className={['bh-display text-[0.55rem] sm:text-[0.65rem] font-bold uppercase tracking-wide leading-snug', c.ink].join(' ')}>
+          Not yet released
+        </div>
+        <div className="mt-1 text-[0.55rem] sm:text-[0.6rem] text-white/70 leading-snug">
+          Stay tuned!
+        </div>
+      </div>
     )
   }
 
