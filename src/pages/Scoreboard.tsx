@@ -68,7 +68,7 @@ function ScoreboardView() {
     return <div className="p-8 text-bh-dim bg-black min-h-screen bh-display">Loading scoreboard...</div>
   }
 
-  const standings: Standing[] = computeStandings(bundle.teams, bundle.squares, bundle.completions, bundle.submissions)
+  const standings: Standing[] = computeStandings(bundle.teams, bundle.squares, bundle.completions, bundle.submissions, bundle.eligibilities)
   const teamsById = new Map(bundle.teams.map((t) => [t._id, t] as const))
   const winners: DrawWinner[] = bundle.game?.drawWinners ?? []
   const winnerIds = new Set<TeamId>(winners.map((w) => w.teamId))

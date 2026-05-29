@@ -61,6 +61,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
     bundle.squares,
     bundle.completions,
     bundle.submissions,
+    bundle.eligibilities,
   )
   const eligible = standings.filter((s) => s.entries > 0)
   const totalEntries = eligible.reduce((sum, s) => sum + s.entries, 0)
