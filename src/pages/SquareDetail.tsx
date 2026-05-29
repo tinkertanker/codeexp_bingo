@@ -294,7 +294,7 @@ function ScanTeamWithAnswerFlow({ team, square, onSubmit }: VerifProps) {
         Scan another team's QR
       </button>
       <p className="text-xs text-bh-dim">
-        Across the 5 blue squares, you must scan <strong>5 different teams with different colours</strong>.
+        Across the 5 blue squares, you must scan <strong>5 different teams</strong>. Use a different colour for each of the first 4.
       </p>
       {error && <ErrorBanner message={error} />}
     </div>

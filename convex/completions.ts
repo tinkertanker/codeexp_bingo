@@ -85,17 +85,21 @@ async function checkBlueDistinctTeamRule(
     )
   }
 
-  // Check same-colour reuse
+  // Check same-colour reuse — but only when unused colours still exist.
+  // There are 4 team colours (red/blue/green/yellow) but 5 blue squares,
+  // so the 5th scan is necessarily a repeat colour. We enforce distinctness
+  // for the first 4 and only require a different *team* for the 5th.
   if (scannedTeam) {
+    const TOTAL_COLOURS = 4
     const usedColours = new Set<string>()
     for (const c of myCompletions) {
       if (!otherIds.has(c.squareId) || c.status === 'rejected' || !c.scannedTeamId) continue
       const otherTeam = await ctx.db.get(c.scannedTeamId)
       if (otherTeam) usedColours.add(otherTeam.colour)
     }
-    if (usedColours.has(scannedTeam.colour)) {
+    if (usedColours.size < TOTAL_COLOURS && usedColours.has(scannedTeam.colour)) {
       throw new Error(
-        `You've already scanned a ${scannedTeam.colour} team for another blue square. Across the 5 blue squares, you must scan 5 different teams with different colours.`,
+        `You've already scanned a ${scannedTeam.colour} team for another blue square. Try scanning a team with a different colour — you've used ${usedColours.size} of ${TOTAL_COLOURS} colours so far.`,
       )
     }
   }
