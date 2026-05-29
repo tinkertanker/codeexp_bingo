@@ -13,9 +13,10 @@ export type LeaderboardProps = {
   highlightTeamIds?: Set<TeamId>
   rowsPerColumn?: number
   onTeamClick?: (standing: Standing) => void
+  hideStats?: boolean
 }
 
-export default function Leaderboard({ standings, highlightTeamIds, rowsPerColumn = 20, onTeamClick }: LeaderboardProps) {
+export default function Leaderboard({ standings, highlightTeamIds, rowsPerColumn = 20, onTeamClick, hideStats }: LeaderboardProps) {
   if (standings.length === 0) {
     return <div className="text-bh-dim text-sm bh-display">No teams yet.</div>
   }
@@ -46,8 +47,12 @@ export default function Leaderboard({ standings, highlightTeamIds, rowsPerColumn
                   <span className={['bh-display w-6 text-right text-xs tabular-nums', highlighted ? 'text-black/70' : 'text-bh-dim'].join(' ')}>{rank}</span>
                   <span className={['inline-block w-3 h-3 rounded-full', swatchClass[s.team.colour]].join(' ')} />
                   <span className="flex-1 truncate text-sm font-medium">{s.team.name}</span>
-                  <span className={['text-xs tabular-nums', highlighted ? 'text-black/70' : 'text-bh-dim'].join(' ')}>{s.lines}L</span>
-                  <span className="bh-display text-sm font-extrabold tabular-nums">{s.entries}</span>
+                  {!hideStats && (
+                    <>
+                      <span className={['text-xs tabular-nums', highlighted ? 'text-black/70' : 'text-bh-dim'].join(' ')}>{s.lines}L</span>
+                      <span className="bh-display text-sm font-extrabold tabular-nums">{s.entries}</span>
+                    </>
+                  )}
                 </button>
               </li>
             )

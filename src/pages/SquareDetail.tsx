@@ -26,6 +26,7 @@ export default function SquareDetail() {
   const existing = data.completions.find((c) => c.squareId === square._id)
   const completed = existing?.status === 'approved'
   const pending = existing?.status === 'pending'
+  const rejected = existing?.status === 'rejected'
   const categoryLocked = isCategoryLocked(square, data.team)
   const timedLocked = !categoryLocked && !isSquareReleased(square)
 
@@ -61,6 +62,15 @@ export default function SquareDetail() {
         {pending && (
           <div className="p-3 rounded-md ring-1 ring-bh-yellow/40 bg-bh-yellow/10 text-bh-yellow text-sm mb-4">
             Waiting for a mentor to approve. You can resubmit if you'd like to replace your evidence.
+          </div>
+        )}
+        {rejected && (
+          <div className="p-3 rounded-md ring-1 ring-bh-magenta/40 bg-bh-magenta/10 text-sm mb-4">
+            <strong className="bh-display tracking-wider text-bh-magenta">Rejected</strong>
+            {existing?.rejectedReason && (
+              <span className="text-white/80"> — {existing.rejectedReason}</span>
+            )}
+            <p className="text-bh-dim mt-1 text-xs">You can resubmit below.</p>
           </div>
         )}
 
@@ -114,7 +124,17 @@ function useTeamLookup() {
 }
 
 function asReason(e: unknown): string {
-  return e instanceof Error ? e.message : String(e)
+  const msg = e instanceof Error ? e.message : String(e)
+  return msg.replace(/^Uncaught Error:\s*/, '').replace(/^Error:\s*/, '')
+}
+
+function ErrorBanner({ message }: { message: string }) {
+  return (
+    <div className="p-3 rounded-md ring-1 ring-bh-magenta/40 bg-bh-magenta/10 text-sm text-white">
+      <span className="bh-display text-bh-magenta text-xs tracking-wider block mb-1">Oops!</span>
+      {message}
+    </div>
+  )
 }
 
 async function uploadPhoto(generateUploadUrl: () => Promise<string>, file: File) {
@@ -164,7 +184,7 @@ function ScanTeamFlow({ team, square, onSubmit }: VerifProps) {
         <button onClick={() => setScannedTeam(null)} disabled={submitting} className="w-full py-2 rounded-md bg-bh-panel text-bh-dim ring-1 ring-bh-line hover:text-white hover:bg-bh-surface text-sm">
           Scan again
         </button>
-        {error && <div className="text-sm text-bh-magenta">{error}</div>}
+        {error && <ErrorBanner message={error} />}
       </div>
     )
   }
@@ -173,7 +193,7 @@ function ScanTeamFlow({ team, square, onSubmit }: VerifProps) {
       <div className="space-y-3">
         <QRScanner onScan={onScan} />
         <button onClick={() => setScanning(false)} className="w-full py-2 rounded-md bg-bh-panel text-bh-dim ring-1 ring-bh-line hover:text-white hover:bg-bh-surface text-sm">Cancel</button>
-        {error && <div className="text-sm text-bh-magenta">{error}</div>}
+        {error && <ErrorBanner message={error} />}
       </div>
     )
   }
@@ -183,7 +203,7 @@ function ScanTeamFlow({ team, square, onSubmit }: VerifProps) {
         Scan another team's QR
       </button>
       <p className="text-xs text-bh-dim">Tip: you can scan your own team's QR if you're claiming yourself.</p>
-      {error && <div className="text-sm text-bh-magenta">{error}</div>}
+      {error && <ErrorBanner message={error} />}
     </div>
   )
 }
@@ -255,7 +275,7 @@ function ScanTeamWithAnswerFlow({ team, square, onSubmit }: VerifProps) {
         <button onClick={() => setScannedTeam(null)} disabled={submitting} className="w-full py-2 rounded-md bg-bh-panel text-bh-dim ring-1 ring-bh-line hover:text-white hover:bg-bh-surface text-sm">
           Scan again
         </button>
-        {error && <div className="text-sm text-bh-magenta">{error}</div>}
+        {error && <ErrorBanner message={error} />}
       </div>
     )
   }
@@ -264,7 +284,7 @@ function ScanTeamWithAnswerFlow({ team, square, onSubmit }: VerifProps) {
       <div className="space-y-3">
         <QRScanner onScan={onScan} />
         <button onClick={() => setScanning(false)} className="w-full py-2 rounded-md bg-bh-panel text-bh-dim ring-1 ring-bh-line hover:text-white hover:bg-bh-surface text-sm">Cancel</button>
-        {error && <div className="text-sm text-bh-magenta">{error}</div>}
+        {error && <ErrorBanner message={error} />}
       </div>
     )
   }
@@ -274,9 +294,9 @@ function ScanTeamWithAnswerFlow({ team, square, onSubmit }: VerifProps) {
         Scan another team's QR
       </button>
       <p className="text-xs text-bh-dim">
-        Across the 4 blue squares, you must scan <strong>4 different teams</strong>.
+        Across the 5 blue squares, you must scan <strong>5 different teams with different colours</strong>.
       </p>
-      {error && <div className="text-sm text-bh-magenta">{error}</div>}
+      {error && <ErrorBanner message={error} />}
     </div>
   )
 }
@@ -353,7 +373,7 @@ function PhotoWithTeamFlow({ team, square, onSubmit }: VerifProps) {
       <button onClick={submit} disabled={submitting || !scannedTeam || !file} className="bh-btn-primary w-full disabled:opacity-50 disabled:hover:bg-bh-lime disabled:hover:shadow-none">
         {submitting ? 'Submitting…' : 'Confirm completion'}
       </button>
-      {error && <div className="text-sm text-bh-magenta">{error}</div>}
+      {error && <ErrorBanner message={error} />}
     </div>
   )
 }
@@ -397,7 +417,7 @@ function SimplePhotoFlow({ team, square, onSubmit, kind }: VerifProps & { kind: 
       <button onClick={submit} disabled={submitting || !file} className="bh-btn-primary w-full disabled:opacity-50 disabled:hover:bg-bh-lime disabled:hover:shadow-none">
         {submitting ? 'Submitting…' : kind === 'auto' ? 'Confirm completion' : 'Send to mentor'}
       </button>
-      {error && <div className="text-sm text-bh-magenta">{error}</div>}
+      {error && <ErrorBanner message={error} />}
     </div>
   )
 }
@@ -433,11 +453,11 @@ function IgUrlFlow({ team, square, onSubmit }: VerifProps) {
           className="mt-1 w-full rounded-md ring-1 ring-bh-line bg-black/40 px-3 py-2 text-sm text-white placeholder:text-bh-dim focus:ring-bh-lime focus:outline-none"
         />
       </label>
-      <p className="text-xs text-bh-dim">A mentor will check the post for the #BH26 hashtag.</p>
+      <p className="text-xs text-bh-dim">Make sure your post includes <strong>#BrainHack2026</strong> and <strong>#DSTA</strong>. A mentor will verify.</p>
       <button onClick={submit} disabled={submitting || !url} className="bh-btn-primary w-full disabled:opacity-50 disabled:hover:bg-bh-lime disabled:hover:shadow-none">
         {submitting ? 'Submitting…' : 'Send to mentor'}
       </button>
-      {error && <div className="text-sm text-bh-magenta">{error}</div>}
+      {error && <ErrorBanner message={error} />}
     </div>
   )
 }

@@ -52,7 +52,7 @@ export default function EligibilityCard({ team, squares }: { team: Team; squares
     <section className="mt-4 bh-card p-3">
       <h3 className="bh-display text-sm font-bold text-white mb-1">Your declared challenges</h3>
       <p className="text-xs text-bh-dim mb-2">
-        Tell us which orange challenges your project qualifies for. A mentor will approve so other teams can scan you.
+        Tell your mentor which orange challenges your project qualifies for. Your mentor will validate your feature and approve so other teams can scan you.
       </p>
       <ul className="space-y-1.5">
         {orangeSquares.map((sq) => {
@@ -79,10 +79,15 @@ export default function EligibilityCard({ team, squares }: { team: Team; squares
                 </>
               )}
               {e?.status === 'rejected' && (
-                <>
-                  <span className="bh-display text-[0.6rem] tracking-widest text-bh-magenta" title={e.rejectedReason ?? ''}>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="bh-display text-[0.6rem] tracking-widest text-bh-magenta">
                     REJECTED
                   </span>
+                  {e.rejectedReason && (
+                    <span className="text-[0.6rem] text-bh-dim italic max-w-[10rem] text-right leading-tight">
+                      Reason: {e.rejectedReason}
+                    </span>
+                  )}
                   <button
                     disabled={busyId === sq._id}
                     onClick={() => onDeclare(sq._id)}
@@ -90,7 +95,7 @@ export default function EligibilityCard({ team, squares }: { team: Team; squares
                   >
                     Re-declare
                   </button>
-                </>
+                </div>
               )}
               {!e && (
                 <button

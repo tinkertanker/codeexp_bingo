@@ -53,8 +53,7 @@ async function assertScannedTeamApproachLimit(
   }
 }
 
-// (3) Blue squares now require each scan to be a different *team* (not just different
-// team-colour). The enforceColourDistinct flag stays — its semantics changed.
+// (3) Blue squares: each scan must be a different *team* AND a different team *colour*.
 async function checkBlueDistinctTeamRule(
   ctx: MutationCtx,
   teamId: Id<'teams'>,
@@ -70,17 +69,35 @@ async function checkBlueDistinctTeamRule(
     .query('squareCompletions')
     .withIndex('by_team', (q) => q.eq('teamId', teamId))
     .collect()
-  const conflict = myCompletions.find(
+
+  const scannedTeam = await ctx.db.get(scannedTeamId)
+
+  // Check same-team reuse
+  const teamConflict = myCompletions.find(
     (c) =>
       otherIds.has(c.squareId) &&
       c.scannedTeamId === scannedTeamId &&
       c.status !== 'rejected',
   )
-  if (conflict) {
-    const scannedTeam = await ctx.db.get(scannedTeamId)
+  if (teamConflict) {
     throw new Error(
-      `You've already used ${scannedTeam?.name ?? 'this team'} for another blue square — each blue square needs a different team.`,
+      `You've already scanned ${scannedTeam?.name ?? 'this team'} for another blue square. Each blue square needs a different team.`,
     )
+  }
+
+  // Check same-colour reuse
+  if (scannedTeam) {
+    const usedColours = new Set<string>()
+    for (const c of myCompletions) {
+      if (!otherIds.has(c.squareId) || c.status === 'rejected' || !c.scannedTeamId) continue
+      const otherTeam = await ctx.db.get(c.scannedTeamId)
+      if (otherTeam) usedColours.add(otherTeam.colour)
+    }
+    if (usedColours.has(scannedTeam.colour)) {
+      throw new Error(
+        `You've already scanned a ${scannedTeam.colour} team for another blue square. Across the 5 blue squares, you must scan 5 different teams with different colours.`,
+      )
+    }
   }
 }
 
