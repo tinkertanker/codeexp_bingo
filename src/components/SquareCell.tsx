@@ -48,7 +48,7 @@ export default function SquareCell({ square, status, href, timedLocked, category
     )
   }
 
-  if (timedLocked) {
+  if (timedLocked && status !== 'approved') {
     return (
       <div
         className={[

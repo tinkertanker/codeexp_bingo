@@ -70,9 +70,6 @@ export default function TeamHome() {
           <Link to={`/t/${data.team.token}/ai-submission`} className="bh-btn-primary text-sm">
             Best use of AI
           </Link>
-          <Link to="/scoreboard" className="bh-btn-ghost text-sm col-span-2">
-            Live event screen
-          </Link>
           </div>
         </div>
       </div>

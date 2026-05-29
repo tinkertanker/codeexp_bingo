@@ -144,8 +144,10 @@ export async function assertEligible(
     .withIndex('by_team_and_square', (q) => q.eq('teamId', teamId).eq('squareId', squareId))
     .unique()
   if (!row || row.status !== 'approved') {
+    const team = await ctx.db.get(teamId)
+    const teamName = team?.name ?? 'That team'
     throw new Error(
-      "That team hasn't been verified for this challenge yet — they need to self-declare and get mentor approval first.",
+      `${teamName} hasn't been verified for this challenge yet. They need to tell their mentor and get approval first before you can scan them.`,
     )
   }
 }
