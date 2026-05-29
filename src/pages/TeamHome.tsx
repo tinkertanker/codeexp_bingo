@@ -6,6 +6,7 @@ import TeamHeader from '../components/TeamHeader'
 import { useTeam } from '../hooks/useTeam'
 import { countCompletedLines } from '../lib/lines'
 import { effectivelyFilledFor } from '../lib/standings'
+import { effectiveCategory } from '../lib/squares'
 import { clearTeamToken } from '../lib/token'
 
 export default function TeamHome() {
@@ -67,9 +68,11 @@ export default function TeamHome() {
           <Link to={`/t/${data.team.token}/project`} className="bh-btn-primary text-sm">
             Project submission
           </Link>
-          <Link to={`/t/${data.team.token}/ai-submission`} className="bh-btn-primary text-sm">
-            Best use of AI
-          </Link>
+          {effectiveCategory(data.team) === 'cat2' && (
+            <Link to={`/t/${data.team.token}/ai-submission`} className="bh-btn-primary text-sm">
+              Best use of AI
+            </Link>
+          )}
           </div>
         </div>
       </div>

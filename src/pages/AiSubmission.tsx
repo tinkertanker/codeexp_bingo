@@ -3,6 +3,7 @@ import { useAction, useMutation, useQuery } from 'convex/react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../../convex/_generated/api'
 import { useTeam } from '../hooks/useTeam'
+import { effectiveCategory } from '../lib/squares'
 
 type AiCheck =
   | { ok: true; accessible: true; title: string | null }
@@ -33,6 +34,22 @@ export default function AiSubmission() {
 
   if (status === 'loading') return <div className="p-6 text-bh-dim bh-display text-xs">Loading…</div>
   if (status !== 'ok' || !data) return <div className="p-6 text-bh-magenta">Team not found.</div>
+
+  if (effectiveCategory(data.team) !== 'cat2') {
+    return (
+      <div className="min-h-screen p-4">
+        <div className="max-w-md mx-auto space-y-4">
+          <Link to={`/t/${data.team.token}`} className="bh-display text-xs tracking-wider text-bh-dim hover:text-bh-lime">
+            ← Back
+          </Link>
+          <h1 className="bh-display text-xl font-bold text-white">Best use of AI</h1>
+          <div className="p-3 rounded-md ring-1 ring-bh-line bg-bh-panel/60 text-bh-dim text-sm">
+            This submission is only for <strong className="text-white">Open category</strong> teams. Your team is in the Beginner category.
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const deadlinePassed = config !== undefined && Date.now() > config.deadline
 
