@@ -52,7 +52,7 @@ export default function EligibilityCard({ team, squares }: { team: Team; squares
     <section className="mt-4 bh-card p-3">
       <h3 className="bh-display text-sm font-bold text-white mb-1">Your declared challenges</h3>
       <p className="text-xs text-bh-dim mb-2">
-        Tell your mentor which orange challenges your project qualifies for. Your mentor will validate your feature and approve so other teams can scan you.
+        Tell your mentor which red challenges your project qualifies for. Your mentor will validate your feature and approve so other teams can scan you. Each approved feature grants <strong className="text-bh-lime">+1 lucky draw entry</strong>!
       </p>
       <ul className="space-y-1.5">
         {orangeSquares.map((sq) => {

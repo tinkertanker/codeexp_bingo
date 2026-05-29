@@ -6,6 +6,7 @@ export type Standing = {
   team: Team
   lines: number
   bonus: number
+  eligibilityBonus: number
   entries: number
 }
 
@@ -35,16 +36,25 @@ export function computeStandings(
   squares: BingoSquare[],
   completions: SquareCompletion[],
   codeSubs: Pick<CodeSubmission, 'teamId' | 'zipClean'>[],
+  eligibilities?: Pick<{ teamId: TeamId; status: string }, 'teamId' | 'status'>[],
 ): Standing[] {
   const subByTeam = new Map<TeamId, Pick<CodeSubmission, 'teamId' | 'zipClean'>>(
     codeSubs.map((s) => [s.teamId, s]),
   )
+  const eligByTeam = new Map<TeamId, number>()
+  if (eligibilities) {
+    for (const e of eligibilities) {
+      if (e.status !== 'approved') continue
+      eligByTeam.set(e.teamId, (eligByTeam.get(e.teamId) ?? 0) + 1)
+    }
+  }
   const standings = teams.map<Standing>((team) => {
     const filled = effectivelyFilledFor(team, squares, completions)
     const lines = countCompletedLines(filled)
     const sub = subByTeam.get(team._id)
     const bonus = sub?.zipClean === true ? 1 : 0
-    return { team, lines, bonus, entries: lines + bonus }
+    const eligibilityBonus = eligByTeam.get(team._id) ?? 0
+    return { team, lines, bonus, eligibilityBonus, entries: lines + bonus + eligibilityBonus }
   })
   standings.sort((a, b) => b.entries - a.entries || b.lines - a.lines || a.team.name.localeCompare(b.team.name))
   return standings

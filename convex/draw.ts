@@ -30,6 +30,14 @@ async function buildEntryPool(
   const allCompletions = await ctx.db.query('squareCompletions').collect()
   const submissions = await ctx.db.query('codeSubmissions').collect()
   const subByTeam = new Map(submissions.map((s) => [s.teamId, s] as const))
+  const allEligibility = await ctx.db.query('teamEligibility').collect()
+
+  // Count approved eligibility declarations per team (each = +1 entry)
+  const eligByTeam = new Map<Id<'teams'>, number>()
+  for (const e of allEligibility) {
+    if (e.status !== 'approved') continue
+    eligByTeam.set(e.teamId, (eligByTeam.get(e.teamId) ?? 0) + 1)
+  }
 
   const pool: Id<'teams'>[] = []
   let eligibleCount = 0
@@ -51,7 +59,8 @@ async function buildEntryPool(
     const lines = countLines(positions)
     const sub = subByTeam.get(team._id)
     const bonus = sub?.zipClean === true ? 1 : 0
-    const entries = Math.min(lines, NUM_LINES) + bonus
+    const eligibilityBonus = eligByTeam.get(team._id) ?? 0
+    const entries = Math.min(lines, NUM_LINES) + bonus + eligibilityBonus
     if (entries > 0) eligibleCount += 1
     for (let i = 0; i < entries; i++) pool.push(team._id)
   }
