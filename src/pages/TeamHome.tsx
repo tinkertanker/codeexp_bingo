@@ -45,8 +45,9 @@ export default function TeamHome() {
 
   const effectivelyFilled = effectivelyFilledFor(data.team, data.squares, data.completions)
   const lines = countCompletedLines(effectivelyFilled)
+  const zipBonus = data.zipClean ? 1 : 0
   const eligibilityBonus = data.eligibilities.filter((e) => e.status === 'approved').length
-  const entries = lines + eligibilityBonus
+  const entries = lines + zipBonus + eligibilityBonus
 
   return (
     <div className="min-h-screen p-3 sm:p-6">
@@ -118,7 +119,7 @@ function InstructionsModal({ onClose }: { onClose: () => void }) {
           <section>
             <h3 className="bh-display text-xs tracking-wider text-bh-cyan mb-1">Blue tasks</h3>
             <ul className="list-disc pl-4 space-y-0.5 text-bh-dim">
-              <li>Teams are divided into 5 colour groups</li>
+              <li>Teams are divided into 4 colour groups</li>
               <li>Find a team from a different colour group for each mission</li>
               <li>The approached team presents their QR code for you to scan</li>
               <li>Each team can be approached a maximum of <strong className="text-white">10 times</strong></li>

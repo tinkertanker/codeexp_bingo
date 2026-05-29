@@ -9,6 +9,7 @@ export type TeamData = {
   squares: BingoSquare[]
   completions: SquareCompletion[]
   eligibilities: TeamEligibility[]
+  zipClean: boolean
   gameOpen: boolean
   game: GameState | null
 }
@@ -27,6 +28,10 @@ export function useTeam(token: string | undefined) {
     api.eligibility.listForTeam,
     team ? { teamId: team._id } : 'skip',
   )
+  const codeSub = useQuery(
+    api.codeSubmissions.getForTeam,
+    team ? { teamId: team._id } : 'skip',
+  )
 
   // Persist the token for return-visits whenever we successfully resolve a team.
   useEffect(() => {
@@ -37,13 +42,14 @@ export function useTeam(token: string | undefined) {
   let data: TeamData | null = null
   if (!token || team === null) {
     status = 'not_found'
-  } else if (team !== undefined && squares !== undefined && completions !== undefined && game !== undefined && eligibilities !== undefined) {
+  } else if (team !== undefined && squares !== undefined && completions !== undefined && game !== undefined && eligibilities !== undefined && codeSub !== undefined) {
     status = 'ok'
     data = {
       team,
       squares: [...squares].sort((a, b) => a.position - b.position),
       completions,
       eligibilities,
+      zipClean: codeSub?.zipClean === true,
       gameOpen: game?.isOpen ?? false,
       game: game ?? null,
     }
