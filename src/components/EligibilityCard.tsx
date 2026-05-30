@@ -59,7 +59,7 @@ export default function EligibilityCard({ team, squares }: { team: Team; squares
         {orangeSquares.map((sq) => {
           const e = byId.get(sq._id)
           const released = isSquareReleased(sq)
-          if (!released && !e) {
+          if (!released && (!e || e.status === 'rejected')) {
             return (
               <li
                 key={sq._id}
