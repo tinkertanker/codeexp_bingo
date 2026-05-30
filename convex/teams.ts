@@ -165,6 +165,35 @@ export const setProblemStatement = mutation({
   },
 })
 
+const ALL_COLOURS = ['red', 'blue', 'green', 'yellow', 'purple'] as const
+
+export const rebalanceColours = mutation({
+  args: {
+    passcode: v.string(),
+    mentorName: v.string(),
+  },
+  handler: async (ctx: MutationCtx, args) => {
+    assertAdmin(args.passcode)
+    if (!args.mentorName.trim()) throw new Error('mentorName is required for the audit trail.')
+    const teams = await ctx.db.query('teams').collect()
+    teams.sort((a, b) => a._creationTime - b._creationTime)
+    let changed = 0
+    for (let i = 0; i < teams.length; i++) {
+      const colour = ALL_COLOURS[i % ALL_COLOURS.length]
+      if (teams[i].colour !== colour) {
+        await ctx.db.patch(teams[i]._id, { colour })
+        changed++
+      }
+    }
+    await logMentorAction(ctx, {
+      mentorName: args.mentorName,
+      action: 'update_team_metadata',
+      metadata: { action: 'rebalance_colours', total: teams.length, changed },
+    })
+    return { total: teams.length, changed }
+  },
+})
+
 export const regenerateToken = mutation({
   args: {
     passcode: v.string(),
