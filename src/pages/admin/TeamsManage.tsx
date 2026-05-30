@@ -7,7 +7,7 @@ import { PROBLEM_STATEMENTS, problemStatementMission } from '../../lib/problemSt
 import { teamMagicLink } from '../../lib/qr'
 import type { Team, TeamCategory, TeamColour, TeamId } from '../../lib/types'
 
-const COLOURS: TeamColour[] = ['red', 'blue', 'green', 'yellow']
+const COLOURS: TeamColour[] = ['red', 'blue', 'green', 'yellow', 'purple']
 
 export default function TeamsManage() {
   return <AdminLayout>{(creds) => <Manage mentorName={creds.name} passcode={creds.passcode} />}</AdminLayout>
@@ -16,6 +16,7 @@ export default function TeamsManage() {
 function Manage({ mentorName, passcode }: { mentorName: string; passcode: string }) {
   const teams = useQuery(api.teams.list)
   const createTeam = useMutation(api.teams.create)
+  const rebalanceColours = useMutation(api.teams.rebalanceColours)
   const regenerateToken = useMutation(api.teams.regenerateToken)
   const setCategory = useMutation(api.teams.setCategory)
   const setProblemStatement = useMutation(api.teams.setProblemStatement)
@@ -26,6 +27,7 @@ function Manage({ mentorName, passcode }: { mentorName: string; passcode: string
   const [newCategory, setNewCategory] = useState<TeamCategory>('cat1')
   const [newProblem, setNewProblem] = useState('')
   const [creating, setCreating] = useState(false)
+  const [rebalancing, setRebalancing] = useState(false)
   const [copyId, setCopyId] = useState<TeamId | null>(null)
 
   const sortedTeams = teams
@@ -149,6 +151,28 @@ function Manage({ mentorName, passcode }: { mentorName: string; passcode: string
           </button>
         </form>
         {error && <p className="text-sm text-bh-magenta mt-2">{error}</p>}
+      </section>
+
+      <section className="bh-card p-3 flex items-center gap-3 flex-wrap">
+        <button
+          disabled={rebalancing}
+          onClick={async () => {
+            if (!window.confirm('Rebalance all teams across 5 colour groups (8 per group)? This will reassign colours.')) return
+            setRebalancing(true)
+            setError(null)
+            try {
+              const result = await rebalanceColours({ passcode, mentorName })
+              window.alert(`Rebalanced: ${result.changed} of ${result.total} teams changed colour.`)
+            } catch (err) {
+              setError(err instanceof Error ? err.message : 'Rebalance failed.')
+            }
+            setRebalancing(false)
+          }}
+          className="bh-btn-ghost text-xs disabled:opacity-50"
+        >
+          {rebalancing ? 'Rebalancing…' : 'Rebalance colours (5 groups)'}
+        </button>
+        <span className="text-[0.65rem] text-bh-dim">Distributes all teams evenly across red / blue / green / yellow / purple</span>
       </section>
 
       <section>

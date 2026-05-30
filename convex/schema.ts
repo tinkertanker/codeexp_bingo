@@ -6,6 +6,7 @@ export const teamColour = v.union(
   v.literal('blue'),
   v.literal('green'),
   v.literal('yellow'),
+  v.literal('purple'),
 )
 
 export const teamCategory = v.union(v.literal('cat1'), v.literal('cat2'))

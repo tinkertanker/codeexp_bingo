@@ -6,6 +6,7 @@ const colourSwatch: Record<TeamColour, string> = {
   blue: 'bg-team-blue shadow-neon-cyan',
   green: 'bg-team-green shadow-neon-lime',
   yellow: 'bg-team-yellow',
+  purple: 'bg-team-purple shadow-neon-purple',
 }
 
 const groupLabel: Record<TeamColour, string> = {
@@ -13,6 +14,7 @@ const groupLabel: Record<TeamColour, string> = {
   blue: 'Cyan group',
   green: 'Lime group',
   yellow: 'Yellow group',
+  purple: 'Purple group',
 }
 
 export type TeamHeaderProps = {
