@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { BingoSquare, BingoSquareId, Team, TeamEligibility } from '../lib/types'
+import { isSquareReleased } from '../lib/squares'
 
 // (4a) Self-declared eligibility for orange "find a team that did X" squares.
 // Team taps "Declare we qualify" → pending → mentor approves on /admin/queue → approved.
@@ -57,6 +58,17 @@ export default function EligibilityCard({ team, squares }: { team: Team; squares
       <ul className="space-y-1.5">
         {orangeSquares.map((sq) => {
           const e = byId.get(sq._id)
+          const released = isSquareReleased(sq)
+          if (!released && (!e || e.status === 'rejected')) {
+            return (
+              <li
+                key={sq._id}
+                className="flex items-center gap-2 rounded ring-1 ring-bh-line/40 bg-black/20 px-2 py-1.5 opacity-60"
+              >
+                <span className="text-xs text-bh-dim flex-1 italic">Not yet released — stay tuned!</span>
+              </li>
+            )
+          }
           return (
             <li
               key={sq._id}
