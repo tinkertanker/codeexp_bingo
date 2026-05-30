@@ -1,6 +1,6 @@
 import type { Doc, Id } from '../../convex/_generated/dataModel'
 
-export type TeamColour = 'red' | 'blue' | 'green' | 'yellow'
+export type TeamColour = 'red' | 'blue' | 'green' | 'yellow' | 'purple'
 export type TeamCategory = 'cat1' | 'cat2'
 export type SquareCategory = 'orange' | 'blue' | 'grey' | 'wild'
 export type VerificationKind =

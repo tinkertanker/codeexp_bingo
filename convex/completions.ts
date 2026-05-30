@@ -85,12 +85,9 @@ async function checkBlueDistinctTeamRule(
     )
   }
 
-  // Check same-colour reuse — but only when unused colours still exist.
-  // There are 4 team colours (red/blue/green/yellow) but 5 blue squares,
-  // so the 5th scan is necessarily a repeat colour. We enforce distinctness
-  // for the first 4 and only require a different *team* for the 5th.
+  // Check same-colour reuse — all 5 blue squares must use a different colour.
   if (scannedTeam) {
-    const TOTAL_COLOURS = 4
+    const TOTAL_COLOURS = 5
     const usedColours = new Set<string>()
     for (const c of myCompletions) {
       if (!otherIds.has(c.squareId) || c.status === 'rejected' || !c.scannedTeamId) continue

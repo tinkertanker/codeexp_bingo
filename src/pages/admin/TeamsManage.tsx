@@ -7,7 +7,7 @@ import { PROBLEM_STATEMENTS, problemStatementMission } from '../../lib/problemSt
 import { teamMagicLink } from '../../lib/qr'
 import type { Team, TeamCategory, TeamColour, TeamId } from '../../lib/types'
 
-const COLOURS: TeamColour[] = ['red', 'blue', 'green', 'yellow']
+const COLOURS: TeamColour[] = ['red', 'blue', 'green', 'yellow', 'purple']
 
 export default function TeamsManage() {
   return <AdminLayout>{(creds) => <Manage mentorName={creds.name} passcode={creds.passcode} />}</AdminLayout>

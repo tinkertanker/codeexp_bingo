@@ -46,12 +46,14 @@ export default {
           blue: '#00FFFF',    // cyan
           green: '#A6FB00',   // CODE_EXP lime
           yellow: '#FFD400',  // bright yellow
+          purple: '#B44AFF',  // electric purple
         },
       },
       boxShadow: {
         'neon-lime': '0 0 0 1px rgba(166,251,0,0.6), 0 0 24px rgba(166,251,0,0.35)',
         'neon-magenta': '0 0 0 1px rgba(255,0,201,0.6), 0 0 24px rgba(255,0,201,0.35)',
         'neon-cyan': '0 0 0 1px rgba(0,255,255,0.55), 0 0 22px rgba(0,255,255,0.3)',
+        'neon-purple': '0 0 0 1px rgba(180,74,255,0.6), 0 0 24px rgba(180,74,255,0.35)',
       },
       backgroundImage: {
         'bh-grid': "linear-gradient(rgba(166,251,0,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(166,251,0,0.06) 1px, transparent 1px)",

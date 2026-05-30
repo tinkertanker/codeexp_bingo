@@ -26,11 +26,13 @@ export default function TeamQR() {
     data.team.colour === 'red' ? 'bg-team-red shadow-neon-magenta' :
     data.team.colour === 'blue' ? 'bg-team-blue shadow-neon-cyan' :
     data.team.colour === 'green' ? 'bg-team-green shadow-neon-lime' :
+    data.team.colour === 'purple' ? 'bg-team-purple shadow-neon-purple' :
     'bg-team-yellow'
   const groupLabel =
     data.team.colour === 'red' ? 'Magenta group' :
     data.team.colour === 'blue' ? 'Cyan group' :
     data.team.colour === 'green' ? 'Lime group' :
+    data.team.colour === 'purple' ? 'Purple group' :
     'Yellow group'
 
   return (

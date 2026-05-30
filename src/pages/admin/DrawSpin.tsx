@@ -16,6 +16,7 @@ const swatchClass: Record<TeamColour, string> = {
   blue: 'bg-team-blue',
   green: 'bg-team-green',
   yellow: 'bg-team-yellow',
+  purple: 'bg-team-purple',
 }
 
 export default function DrawSpin() {
