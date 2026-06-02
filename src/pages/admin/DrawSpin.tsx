@@ -51,6 +51,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
   const [revealedIds, setRevealedIds] = useState<TeamId[]>([])
   const [tickName, setTickName] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [drawInProgress, setDrawInProgress] = useState(false)
 
   if (bundle === undefined) {
     return <p className="text-sm text-bh-dim bh-display">Loading…</p>
@@ -75,12 +76,14 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
       return
     }
     setRevealedIds([])
+    setDrawInProgress(true)
     let winners: DrawWinner[]
     try {
       winners = await runDraw({ passcode, mentorName, count: NUM_WINNERS })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Draw failed.')
       setPhase('error')
+      setDrawInProgress(false)
       return
     }
     for (const w of winners) {
@@ -98,6 +101,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
       await sleep(REVEAL_HOLD_MS)
     }
     setPhase('done')
+    setDrawInProgress(false)
   }
 
   const reset = async () => {
@@ -175,7 +179,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
         )}
       </div>
 
-      {(revealedIds.length > 0 || existingWinners.length > 0) && (
+      {(revealedIds.length > 0 || (existingWinners.length > 0 && !drawInProgress)) && (
         <section>
           <h3 className="bh-display text-xs tracking-widest text-bh-lime mb-2">WINNERS</h3>
           <ol className="space-y-2">

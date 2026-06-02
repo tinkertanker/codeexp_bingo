@@ -6,6 +6,19 @@ import { effectiveCategory, isSquareReleased } from './lib'
 
 const APPROACH_LIMIT_PER_TEAM = 10
 
+async function deleteExistingPhotos(
+  ctx: MutationCtx,
+  completionId: Id<'squareCompletions'>,
+): Promise<void> {
+  const photos = await ctx.db.query('photos').collect()
+  for (const p of photos) {
+    if (p.completionId === completionId) {
+      await ctx.storage.delete(p.storageId)
+      await ctx.db.delete(p._id)
+    }
+  }
+}
+
 async function findExisting(
   ctx: MutationCtx,
   teamId: Id<'teams'>,
@@ -47,7 +60,7 @@ async function assertScannedTeamApproachLimit(
     if (counted >= APPROACH_LIMIT_PER_TEAM) {
       const scannedTeam = await ctx.db.get(scannedTeamId)
       throw new Error(
-        `${scannedTeam?.name ?? 'This team'} has already been approached ${APPROACH_LIMIT_PER_TEAM} times. Please find another team.`,
+        `"${scannedTeam?.name ?? 'This team'}" has been approached the maximum ${APPROACH_LIMIT_PER_TEAM} times already. Try finding a different team to scan!`,
       )
     }
   }
@@ -214,6 +227,7 @@ export const submitPhotoWithTeam = mutation({
     }
     const existing = await findExisting(ctx, args.teamId, args.squareId)
     await assertScannedTeamApproachLimit(ctx, args.scannedTeamId, existing?._id)
+    if (existing) await deleteExistingPhotos(ctx, existing._id)
     const id = await upsert(ctx, {
       teamId: args.teamId,
       squareId: args.squareId,
@@ -237,6 +251,8 @@ export const submitPhotoAuto = mutation({
   },
   handler: async (ctx: MutationCtx, args) => {
     await assertCanSubmit(ctx, args.teamId, args.squareId)
+    const existing = await findExisting(ctx, args.teamId, args.squareId)
+    if (existing) await deleteExistingPhotos(ctx, existing._id)
     const id = await upsert(ctx, {
       teamId: args.teamId,
       squareId: args.squareId,
@@ -259,6 +275,8 @@ export const submitPhotoMentor = mutation({
   },
   handler: async (ctx: MutationCtx, args) => {
     await assertCanSubmit(ctx, args.teamId, args.squareId)
+    const existing = await findExisting(ctx, args.teamId, args.squareId)
+    if (existing) await deleteExistingPhotos(ctx, existing._id)
     const id = await upsert(ctx, {
       teamId: args.teamId,
       squareId: args.squareId,

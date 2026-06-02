@@ -151,7 +151,7 @@ export async function assertEligible(
     const team = await ctx.db.get(teamId)
     const teamName = team?.name ?? 'That team'
     throw new Error(
-      `${teamName} hasn't been verified for this challenge yet. They need to tell their mentor and get approval first before you can scan them.`,
+      `"${teamName}" hasn't been verified for this feature yet. Ask them to declare it in their app and get their mentor's approval first.`,
     )
   }
 }

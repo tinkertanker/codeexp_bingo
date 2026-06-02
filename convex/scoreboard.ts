@@ -14,8 +14,17 @@ export const bundle = query({
       ctx.db.query('fanVotes').collect(),
       ctx.db.query('teamEligibility').collect(),
     ])
+    // Only show photos whose associated completion is approved (hide pending/rejected).
+    const approvedPhotos: typeof photosRaw = []
+    for (const p of photosRaw) {
+      if (p.completionId) {
+        const completion = await ctx.db.get(p.completionId)
+        if (!completion || completion.status !== 'approved') continue
+      }
+      approvedPhotos.push(p)
+    }
     const photos = await Promise.all(
-      photosRaw.map(async (p) => ({ ...p, url: await ctx.storage.getUrl(p.storageId) })),
+      approvedPhotos.map(async (p) => ({ ...p, url: await ctx.storage.getUrl(p.storageId) })),
     )
     // (2) Ranked per-category fan-fav tally embedded so the scoreboard renders in one round-trip.
     const fanFavs = computeRankedTally(fanVotesRaw, teams)
