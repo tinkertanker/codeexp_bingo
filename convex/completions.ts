@@ -13,6 +13,7 @@ async function deleteExistingPhotos(
   const photos = await ctx.db.query('photos').collect()
   for (const p of photos) {
     if (p.completionId === completionId) {
+      await ctx.storage.delete(p.storageId)
       await ctx.db.delete(p._id)
     }
   }
