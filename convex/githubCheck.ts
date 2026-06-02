@@ -16,8 +16,11 @@ export const check = action({
   handler: async (_ctx, { url }): Promise<GithubCheck> => {
     const parts = parseGithubUrl(url)
     if (!parts) return { ok: false, isPublic: false, reason: "Doesn't look like a GitHub repo URL." }
+    const headers: Record<string, string> = { Accept: 'application/vnd.github+json' }
+    const token = process.env.GITHUB_TOKEN
+    if (token) headers.Authorization = `Bearer ${token}`
     const res = await fetch(`https://api.github.com/repos/${parts.owner}/${parts.repo}`, {
-      headers: { Accept: 'application/vnd.github+json' },
+      headers,
     })
     if (res.status === 404) return { ok: false, isPublic: false, reason: 'Repo not found or is private.' }
     if (res.status === 403) return { ok: false, isPublic: false, reason: 'GitHub rate-limited the check. Try again in a minute.' }

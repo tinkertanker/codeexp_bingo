@@ -108,7 +108,7 @@ function Verification({ team, square, onSubmit }: VerifProps) {
     case 'ig_url_mentor':
       return <IgUrlFlow team={team} square={square} onSubmit={onSubmit} />
     case 'booth_qr':
-      return <ClaimQrHint square={square} />
+      return <ClaimQrFlow team={team} square={square} onSubmit={onSubmit} />
   }
 }
 
@@ -462,18 +462,63 @@ function IgUrlFlow({ team, square, onSubmit }: VerifProps) {
   )
 }
 
-function ClaimQrHint({ square }: { square: BingoSquare }) {
+function ClaimQrFlow({ team, square, onSubmit }: VerifProps) {
+  const [scanning, setScanning] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const submitClaimQr = useMutation(api.completions.submitClaimQr)
+
   const isArrival = square.claimSlug === 'arrive-9am'
   const isDeepfake = square.claimSlug === 'deepfake'
+
+  const onScan = async (text: string) => {
+    if (submitting) return
+    setScanning(false)
+    // Parse the claim slug from the scanned URL (e.g. https://bingo.codeexp.tk.sg/claim/deepfake)
+    const m = text.match(/\/claim\/([^/?#]+)/)
+    if (!m) {
+      setError("That doesn't look like an event claim QR. Try scanning the poster QR code.")
+      return
+    }
+    if (m[1] !== square.claimSlug) {
+      setError(`Wrong QR — this square needs the "${square.claimSlug}" QR, but you scanned "${m[1]}".`)
+      return
+    }
+    setError(null)
+    setSubmitting(true)
+    const result = await onSubmit(
+      submitClaimQr({ teamId: team._id, squareId: square._id })
+        .then<Outcome>(() => ({ ok: true, pending: false }))
+        .catch<Outcome>((e) => ({ ok: false, reason: asReason(e) })),
+    )
+    if (!result.ok) {
+      setError(result.reason ?? 'Claim failed.')
+      setSubmitting(false)
+    }
+  }
+
   return (
-    <div className="space-y-3 p-4 bh-card">
-      <p className="text-sm text-white/80">
-        {isArrival
-          ? 'Scan the CODE_EXP briefing QR with your phone camera during the 9am briefing. It will mark this square as complete.'
-          : isDeepfake
-            ? "Complete the Deepfake booth challenge, then scan the booth QR with your phone camera. It'll mark this square as complete."
-            : "Scan the event QR with your phone camera. It'll mark this square as complete."}
-      </p>
+    <div className="space-y-3">
+      <div className="p-4 bh-card">
+        <p className="text-sm text-white/80">
+          {isArrival
+            ? 'Scan the CODE_EXP briefing QR during the 9am briefing to mark this square as complete.'
+            : isDeepfake
+              ? 'Complete the Deepfake booth challenge, then scan the booth QR to mark this square as complete.'
+              : 'Scan the event QR to mark this square as complete.'}
+        </p>
+      </div>
+      {scanning ? (
+        <>
+          <QRScanner onScan={onScan} />
+          <button onClick={() => setScanning(false)} className="w-full py-2 rounded-md bg-bh-panel text-bh-dim ring-1 ring-bh-line hover:text-white hover:bg-bh-surface text-sm">Cancel</button>
+        </>
+      ) : (
+        <button onClick={() => setScanning(true)} disabled={submitting} className="bh-btn-primary w-full disabled:opacity-50">
+          {submitting ? 'Claiming…' : 'Scan event QR'}
+        </button>
+      )}
+      {error && <ErrorBanner message={error} />}
     </div>
   )
 }
