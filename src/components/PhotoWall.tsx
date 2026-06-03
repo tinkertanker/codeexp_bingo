@@ -12,21 +12,8 @@ export default function PhotoWall({ photos, teamsById, cap = 18 }: PhotoWallProp
   const recent = photos.slice(0, cap)
   if (recent.length === 0) {
     return (
-      <div className="grid grid-cols-3 gap-3 h-full auto-rows-fr">
-        {Array.from({ length: Math.min(cap, 9) }).map((_, i) => (
-          <figure
-            key={i}
-            className={[
-              'relative aspect-square rounded-lg overflow-hidden ring-1 ring-white/10',
-              i % 5 === 0 ? 'bg-team-red/60' : i % 5 === 1 ? 'bg-team-blue/60' : i % 5 === 2 ? 'bg-team-green/60' : i % 5 === 3 ? 'bg-team-yellow/60' : 'bg-team-purple/60',
-            ].join(' ')}
-          >
-            <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.20),transparent_42%),radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.55)_0_16%,transparent_17%),radial-gradient(circle_at_50%_82%,rgba(0,0,0,0.28)_0_35%,transparent_36%)]" />
-            <figcaption className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-black/50 text-white text-xs">
-              Demo photo
-            </figcaption>
-          </figure>
-        ))}
+      <div className="flex items-center justify-center h-full text-bh-dim text-sm bh-display">
+        No photos yet
       </div>
     )
   }
