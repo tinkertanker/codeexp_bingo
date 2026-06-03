@@ -65,7 +65,7 @@ function ScoreboardView() {
   const [selectedStanding, setSelectedStanding] = useState<Standing | null>(null)
 
   if (bundle === undefined) {
-    return <div className="p-8 text-bh-dim bg-black min-h-screen bh-display">Loading scoreboard...</div>
+    return <div className="p-8 text-bh-dim bg-black min-h-screen bh-display">Loading live screen...</div>
   }
 
   const standings: Standing[] = computeStandings(bundle.teams, bundle.squares, bundle.completions, bundle.submissions, bundle.eligibilities)

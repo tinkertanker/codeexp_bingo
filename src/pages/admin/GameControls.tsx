@@ -56,7 +56,7 @@ function Controls({ mentorName, passcode }: { mentorName: string; passcode: stri
       <section className="bh-card p-4">
         <h2 className="bh-display text-xl font-bold mb-2 text-white">Game state</h2>
         <p className="text-sm text-bh-dim mb-3">
-          When the game is closed, teams' bingo cards are read-only. They can still see the scoreboard.
+          When the game is closed, teams' bingo cards are read-only. They can still see the live screen.
         </p>
         <div className="flex items-center gap-3 flex-wrap">
           <span className={['bh-display px-2.5 py-1 rounded text-xs font-bold tracking-widest ring-1', game?.isOpen ? 'bg-bh-lime text-black ring-bh-lime shadow-neon-lime' : 'bg-bh-panel text-bh-dim ring-bh-line'].join(' ')}>

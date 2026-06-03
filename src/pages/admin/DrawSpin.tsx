@@ -105,7 +105,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
   }
 
   const reset = async () => {
-    if (!window.confirm('Clear the recorded winners? They will disappear from the scoreboard.')) return
+    if (!window.confirm('Clear the recorded winners? They will disappear from the live screen.')) return
     try {
       await clearWinners({ passcode, mentorName })
     } catch (e) {
@@ -123,7 +123,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
         <h2 className="bh-display text-xl font-bold mb-1 text-white">Lucky Draw</h2>
         <p className="text-sm text-bh-dim">
           Picks {NUM_WINNERS} winners weighted by lucky-draw entries (one per completed bingo line + one bonus for a
-          clean ZIP submission). Result is broadcast to the public scoreboard immediately.
+          clean ZIP submission). Result is broadcast to the live screen immediately.
         </p>
         <div className="mt-2 bh-display text-[0.7rem] tracking-widest text-bh-lime">
           {eligible.length} ELIGIBLE TEAM(S) · {totalEntries} TOTAL ENTRIES

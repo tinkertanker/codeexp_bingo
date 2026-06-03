@@ -42,7 +42,7 @@ export default function AiSubmission() {
           <Link to={`/t/${data.team.token}`} className="bh-display text-xs tracking-wider text-bh-dim hover:text-bh-lime">
             ← Back
           </Link>
-          <h1 className="bh-display text-xl font-bold text-white">Best use of AI</h1>
+          <h1 className="bh-display text-xl font-bold text-white">Innovative use of AI</h1>
           <div className="p-3 rounded-md ring-1 ring-bh-line bg-bh-panel/60 text-bh-dim text-sm">
             This submission is only for <strong className="text-white">Open category</strong> teams. Your team is in the Beginner category.
           </div>
@@ -84,9 +84,9 @@ export default function AiSubmission() {
         <Link to={`/t/${data.team.token}`} className="bh-display text-xs tracking-wider text-bh-dim hover:text-bh-lime">
           ← Back
         </Link>
-        <h1 className="bh-display text-xl font-bold text-white">Best use of AI</h1>
+        <h1 className="bh-display text-xl font-bold text-white">Innovative use of AI</h1>
         <p className="text-sm text-bh-dim">
-          Submit your "Best use of AI" entry for DSTA to judge. Upload your file (any format) to Google Drive, set
+          Submit your "Innovative use of AI" entry for DSTA to judge. Upload your file (any format) to Google Drive, set
           sharing to <strong className="text-white">"Anyone with the link"</strong>, and paste the link below.
           Private links will get a very direct complaint from the checker.
         </p>
