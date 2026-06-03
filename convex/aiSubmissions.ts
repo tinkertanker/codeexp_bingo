@@ -1,7 +1,7 @@
 import { v } from 'convex/values'
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
 
-// Hard deadline for the "Best use of AI" submission: 10 Jun 2026, 18:00 Singapore time (UTC+8).
+// Hard deadline for the "Innovative use of AI" submission: 10 Jun 2026, 18:00 Singapore time (UTC+8).
 // Mirrored client-side via the `config` query so the countdown and the server agree.
 export const AI_SUBMISSION_DEADLINE_MS = new Date('2026-06-10T18:00:00+08:00').getTime()
 
@@ -43,7 +43,7 @@ export const save = mutation({
   },
   handler: async (ctx: MutationCtx, args) => {
     if (Date.now() > AI_SUBMISSION_DEADLINE_MS) {
-      throw new Error('The "Best use of AI" submission deadline (10 Jun, 6pm) has passed.')
+      throw new Error('The "Innovative use of AI" submission deadline (10 Jun, 6pm) has passed.')
     }
     const url = args.driveUrl.trim()
     if (!url) throw new Error('A Google Drive link is required.')

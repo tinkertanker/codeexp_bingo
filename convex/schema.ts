@@ -152,7 +152,7 @@ export default defineSchema({
     .index('by_voter', ['voterTeamId'])
     .index('by_voter_and_category', ['voterTeamId', 'category']),
 
-  // "Best use of AI" submission — one per team. Teams paste a Google Drive link; a Convex
+  // "Innovative use of AI" submission — one per team. Teams paste a Google Drive link; a Convex
   // action heuristically verifies it's publicly accessible. Hard deadline enforced server-side.
   aiSubmissions: defineTable({
     teamId: v.id('teams'),

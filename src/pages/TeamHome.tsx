@@ -80,7 +80,7 @@ export default function TeamHome() {
           </Link>
           {effectiveCategory(data.team) === 'cat2' && (
             <Link to={`/t/${data.team.token}/ai-submission`} className="bh-btn-primary text-sm">
-              Best use of AI
+              Innovative use of AI
             </Link>
           )}
           </div>

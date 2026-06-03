@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Splash from './pages/Splash'
 import TeamHome from './pages/TeamHome'
 
@@ -37,7 +37,8 @@ function App() {
           <Route path="/claim/:claimSlug/qr" element={<ClaimQrDisplay />} />
           <Route path="/claim/:claimSlug" element={<ClaimQr />} />
           <Route path="/booth/deepfake" element={<BoothDeepfake />} />
-          <Route path="/scoreboard" element={<Scoreboard />} />
+          <Route path="/live" element={<Scoreboard />} />
+          <Route path="/scoreboard" element={<Navigate to="/live" replace />} />
           <Route path="/admin" element={<AdminLogin />} />
           <Route path="/admin/queue" element={<ApprovalQueue />} />
           <Route path="/admin/teams" element={<TeamsManage />} />

@@ -42,8 +42,8 @@ export default function Splash() {
           <p className="text-xs text-bh-dim/80 mb-6">
             Already have one? It looks like <code className="font-mono text-bh-lime">/t/&lt;token&gt;</code>. Open it on this device and you'll be logged in as your team.
           </p>
-          <Link to="/scoreboard" className="bh-btn-primary w-full">
-            View live scoreboard
+          <Link to="/live" className="bh-btn-primary w-full">
+            View live screen
           </Link>
         </div>
       </div>

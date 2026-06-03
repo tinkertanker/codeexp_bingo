@@ -15,7 +15,7 @@ function Body() {
   }
   return (
     <div className="space-y-3">
-      <h2 className="bh-display text-xl font-bold text-white">Best use of AI — submissions</h2>
+      <h2 className="bh-display text-xl font-bold text-white">Innovative use of AI — submissions</h2>
       <p className="text-xs text-bh-dim">
         {subs.length} submitted. "Accessible" is a best-effort public-link check, not a guarantee.
       </p>
