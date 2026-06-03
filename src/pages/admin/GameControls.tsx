@@ -17,13 +17,17 @@ function Controls({ mentorName, passcode }: { mentorName: string; passcode: stri
   const setOpen = useMutation(api.gameState.setOpen)
   const adminForceSetOpen = useMutation(api.gameState.adminForceSetOpen)
   const updateSchedule = useMutation(api.squares.adminUpdateSchedule)
-  const resetAll = useMutation(api.seed.resetAll)
+  const resetProgress = useMutation(api.seed.resetProgress)
+  const seedAll = useMutation(api.seed.seedAll)
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resetBusy, setResetBusy] = useState(false)
   const [resetResult, setResetResult] = useState<string | null>(null)
   const [resetError, setResetError] = useState<string | null>(null)
+  const [seedBusy, setSeedBusy] = useState(false)
+  const [seedResult, setSeedResult] = useState<string | null>(null)
+  const [seedError, setSeedError] = useState<string | null>(null)
 
   const isOrg = isOrganiser(mentorName)
 
@@ -96,11 +100,10 @@ function Controls({ mentorName, passcode }: { mentorName: string; passcode: stri
       </section>
 
       <section className="bh-card p-4 ring-bh-magenta/40">
-        <h2 className="bh-display text-xl font-bold mb-2 text-bh-magenta">Reset &amp; Reseed</h2>
+        <h2 className="bh-display text-xl font-bold mb-2 text-bh-magenta">Reset progress</h2>
         <p className="text-sm text-bh-dim mb-3">
           Wipe <strong>all</strong> completions, photos, eligibility declarations, code/AI submissions,
-          fan votes, mentor actions, and draw results. Teams are preserved. Bingo squares are re-seeded
-          with the latest titles and settings from code.
+          fan votes, mentor actions, and draw results. Teams and bingo squares are preserved.
         </p>
         <button
           disabled={resetBusy}
@@ -111,14 +114,13 @@ function Controls({ mentorName, passcode }: { mentorName: string; passcode: stri
             setResetResult(null)
             setResetError(null)
             try {
-              const res = await resetAll({ passcode })
+              const res = await resetProgress({ passcode })
               const d = res.deleted as Record<string, number>
               const parts = Object.entries(d)
                 .filter(([, n]) => n > 0)
                 .map(([k, n]) => `${n} ${k}`)
               setResetResult(
-                `Done! Deleted ${parts.length > 0 ? parts.join(', ') : 'nothing'}. ` +
-                `Squares: ${res.squaresUpdated} updated, ${res.squaresInserted} inserted.`,
+                `Done! Deleted ${parts.length > 0 ? parts.join(', ') : 'nothing'}.`,
               )
             } catch (e) {
               setResetError(e instanceof Error ? e.message : 'Reset failed.')
@@ -127,10 +129,40 @@ function Controls({ mentorName, passcode }: { mentorName: string; passcode: stri
           }}
           className="bh-display px-3 py-2 rounded text-xs tracking-wider ring-1 ring-bh-magenta text-bh-magenta hover:bg-bh-magenta/10 disabled:opacity-50"
         >
-          {resetBusy ? 'Resetting…' : 'Reset everything & reseed squares'}
+          {resetBusy ? 'Resetting…' : 'Reset all progress'}
         </button>
         {resetResult && <p className="text-sm text-bh-lime mt-2">{resetResult}</p>}
         {resetError && <p className="text-sm text-bh-magenta mt-2">{resetError}</p>}
+      </section>
+
+      <section className="bh-card p-4 ring-bh-cyan/40">
+        <h2 className="bh-display text-xl font-bold mb-2 text-bh-cyan">Reseed squares</h2>
+        <p className="text-sm text-bh-dim mb-3">
+          Update all 16 bingo square titles, descriptions, and settings from code.
+          Does <strong>not</strong> touch progress data or teams.
+        </p>
+        <button
+          disabled={seedBusy}
+          onClick={async () => {
+            setSeedBusy(true)
+            setSeedResult(null)
+            setSeedError(null)
+            try {
+              const res = await seedAll({ passcode })
+              setSeedResult(
+                `Done! ${res.updated} updated, ${res.inserted} inserted (${res.totalSquares} total).`,
+              )
+            } catch (e) {
+              setSeedError(e instanceof Error ? e.message : 'Reseed failed.')
+            }
+            setSeedBusy(false)
+          }}
+          className="bh-display px-3 py-2 rounded text-xs tracking-wider ring-1 ring-bh-cyan text-bh-cyan hover:bg-bh-cyan/10 disabled:opacity-50"
+        >
+          {seedBusy ? 'Reseeding…' : 'Reseed bingo squares'}
+        </button>
+        {seedResult && <p className="text-sm text-bh-lime mt-2">{seedResult}</p>}
+        {seedError && <p className="text-sm text-bh-magenta mt-2">{seedError}</p>}
       </section>
     </div>
   )
