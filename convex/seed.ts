@@ -84,11 +84,10 @@ export const seedAll = mutation({
 })
 
 /**
- * Nuclear reset: wipe all transactional data (completions, photos, eligibility,
- * code/AI submissions, fan votes, mentor actions, draw results) and re-seed the
- * bingo squares with the latest titles/descriptions. Teams are preserved.
+ * Wipe all transactional/progress data. Teams and bingo squares are preserved.
+ * Use seedAll separately to update square titles/settings.
  */
-export const resetAll = mutation({
+export const resetProgress = mutation({
   args: { passcode: v.string() },
   handler: async (ctx: MutationCtx, { passcode }) => {
     assertAdmin(passcode)
@@ -161,35 +160,7 @@ export const resetAll = mutation({
       await ctx.db.insert('gameState', { isOpen: false })
     }
 
-    // 9. Re-seed bingo squares (update titles/descriptions/settings from SQUARES).
-    const existing = await ctx.db.query('bingoSquares').collect()
-    const byPosition = new Map(existing.map((s) => [s.position, s] as const))
-    let squaresInserted = 0
-    let squaresUpdated = 0
-    for (const sq of SQUARES) {
-      const cur = byPosition.get(sq.position)
-      const payload = {
-        position: sq.position,
-        category: sq.category,
-        title: sq.title,
-        description: sq.description,
-        verificationKind: sq.verificationKind,
-        enforceColourDistinct: sq.enforceColourDistinct,
-        releaseAt: sq.releaseAt,
-        manuallyReleased: sq.manuallyReleased,
-        claimSlug: sq.claimSlug,
-        restrictToCategory: sq.restrictToCategory,
-      }
-      if (cur) {
-        await ctx.db.patch(cur._id, payload)
-        squaresUpdated++
-      } else {
-        await ctx.db.insert('bingoSquares', payload)
-        squaresInserted++
-      }
-    }
-
-    return { deleted: counts, squaresInserted, squaresUpdated }
+    return { deleted: counts }
   },
 })
 
