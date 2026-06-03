@@ -154,7 +154,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
           {phase === 'done' && (
             <div className="space-y-2">
               <div className="bh-display text-4xl font-extrabold text-bh-lime">All winners drawn!</div>
-              <div className="text-sm text-bh-dim">Check the public scoreboard.</div>
+              <div className="text-sm text-bh-dim">Check the public live screen.</div>
             </div>
           )}
           {phase === 'error' && <div className="text-bh-magenta">{error}</div>}
