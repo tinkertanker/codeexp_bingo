@@ -17,9 +17,13 @@ function Controls({ mentorName, passcode }: { mentorName: string; passcode: stri
   const setOpen = useMutation(api.gameState.setOpen)
   const adminForceSetOpen = useMutation(api.gameState.adminForceSetOpen)
   const updateSchedule = useMutation(api.squares.adminUpdateSchedule)
+  const resetAll = useMutation(api.seed.resetAll)
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [resetBusy, setResetBusy] = useState(false)
+  const [resetResult, setResetResult] = useState<string | null>(null)
+  const [resetError, setResetError] = useState<string | null>(null)
 
   const isOrg = isOrganiser(mentorName)
 
@@ -89,6 +93,44 @@ function Controls({ mentorName, passcode }: { mentorName: string; passcode: stri
           <Stat label="Approved completions" value={stats.approvedCompletions} />
           <Stat label="Photos uploaded" value={stats.photos} />
         </div>
+      </section>
+
+      <section className="bh-card p-4 ring-bh-magenta/40">
+        <h2 className="bh-display text-xl font-bold mb-2 text-bh-magenta">Reset &amp; Reseed</h2>
+        <p className="text-sm text-bh-dim mb-3">
+          Wipe <strong>all</strong> completions, photos, eligibility declarations, code/AI submissions,
+          fan votes, mentor actions, and draw results. Teams are preserved. Bingo squares are re-seeded
+          with the latest titles and settings from code.
+        </p>
+        <button
+          disabled={resetBusy}
+          onClick={async () => {
+            if (!window.confirm('This will permanently delete ALL progress data. Are you sure?')) return
+            if (!window.confirm('Really? This cannot be undone.')) return
+            setResetBusy(true)
+            setResetResult(null)
+            setResetError(null)
+            try {
+              const res = await resetAll({ passcode })
+              const d = res.deleted as Record<string, number>
+              const parts = Object.entries(d)
+                .filter(([, n]) => n > 0)
+                .map(([k, n]) => `${n} ${k}`)
+              setResetResult(
+                `Done! Deleted ${parts.length > 0 ? parts.join(', ') : 'nothing'}. ` +
+                `Squares: ${res.squaresUpdated} updated, ${res.squaresInserted} inserted.`,
+              )
+            } catch (e) {
+              setResetError(e instanceof Error ? e.message : 'Reset failed.')
+            }
+            setResetBusy(false)
+          }}
+          className="bh-display px-3 py-2 rounded text-xs tracking-wider ring-1 ring-bh-magenta text-bh-magenta hover:bg-bh-magenta/10 disabled:opacity-50"
+        >
+          {resetBusy ? 'Resetting…' : 'Reset everything & reseed squares'}
+        </button>
+        {resetResult && <p className="text-sm text-bh-lime mt-2">{resetResult}</p>}
+        {resetError && <p className="text-sm text-bh-magenta mt-2">{resetError}</p>}
       </section>
     </div>
   )
