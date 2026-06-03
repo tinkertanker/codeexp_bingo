@@ -94,19 +94,26 @@ export const resetAll = mutation({
     assertAdmin(passcode)
 
     const counts: Record<string, number> = {}
+    const deletedStorageIds = new Set<string>()
 
     // 1. Photos — delete storage blobs then rows.
     const photos = await ctx.db.query('photos').collect()
     for (const p of photos) {
-      await ctx.storage.delete(p.storageId)
+      if (!deletedStorageIds.has(p.storageId)) {
+        await ctx.storage.delete(p.storageId)
+        deletedStorageIds.add(p.storageId)
+      }
       await ctx.db.delete(p._id)
     }
     counts.photos = photos.length
 
-    // 2. Square completions — delete storage blobs for any photo evidence, then rows.
+    // 2. Square completions — delete storage blobs for photo evidence (skip already-deleted).
     const completions = await ctx.db.query('squareCompletions').collect()
     for (const c of completions) {
-      if (c.photoStorageId) await ctx.storage.delete(c.photoStorageId)
+      if (c.photoStorageId && !deletedStorageIds.has(c.photoStorageId)) {
+        await ctx.storage.delete(c.photoStorageId)
+        deletedStorageIds.add(c.photoStorageId)
+      }
       await ctx.db.delete(c._id)
     }
     counts.completions = completions.length
@@ -114,7 +121,10 @@ export const resetAll = mutation({
     // 3. Code submissions — delete ZIP storage blobs, then rows.
     const codeSubs = await ctx.db.query('codeSubmissions').collect()
     for (const s of codeSubs) {
-      if (s.zipStorageId) await ctx.storage.delete(s.zipStorageId)
+      if (s.zipStorageId && !deletedStorageIds.has(s.zipStorageId)) {
+        await ctx.storage.delete(s.zipStorageId)
+        deletedStorageIds.add(s.zipStorageId)
+      }
       await ctx.db.delete(s._id)
     }
     counts.codeSubmissions = codeSubs.length
