@@ -45,8 +45,17 @@ export default function SquareDetail() {
         <Link to={`/t/${data.team.token}`} className="bh-display text-xs tracking-wider text-bh-dim hover:text-bh-lime">
           ← Back
         </Link>
-        <h1 className="mt-2 bh-display text-xl font-bold text-white">{square.title}</h1>
-        <p className="text-sm text-bh-dim mb-4">{square.description}</p>
+        {timedLocked ? (
+          <>
+            <h1 className="mt-2 bh-display text-xl font-bold text-white">Coming soon</h1>
+            <p className="text-sm text-bh-dim mb-4">This square unlocks later in the event — check back soon!</p>
+          </>
+        ) : (
+          <>
+            <h1 className="mt-2 bh-display text-xl font-bold text-white">{square.title}</h1>
+            <p className="text-sm text-bh-dim mb-4">{square.description}</p>
+          </>
+        )}
 
         {categoryLocked && (
           <div className="p-3 rounded-md ring-1 ring-bh-line bg-bh-panel/60 text-bh-dim text-sm mb-4">
@@ -59,8 +68,8 @@ export default function SquareDetail() {
           </div>
         )}
         {timedLocked && (
-          <div className="p-3 rounded-md ring-1 ring-bh-yellow/40 bg-bh-yellow/10 text-bh-yellow text-sm mb-4">
-            <strong className="bh-display tracking-wider">Coming soon.</strong> This square unlocks later in the event.
+          <div className="p-3 rounded-md ring-1 ring-bh-yellow/40 bg-bh-yellow/10 text-bh-yellow text-sm mb-4 bh-display tracking-wider">
+            This square unlocks later in the event.
           </div>
         )}
         {completed && (

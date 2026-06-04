@@ -92,25 +92,30 @@ export const run = mutation({
     assertAdmin(args.passcode)
     assertOrganiser(args.mentorName)
     if (args.count < 1 || args.count > 10) throw new Error('count must be between 1 and 10.')
-    const { pool, eligibleCount } = await buildEntryPool(ctx)
-    if (eligibleCount < args.count) {
-      throw new Error(`Only ${eligibleCount} eligible team(s). Need at least ${args.count} with one or more entries.`)
-    }
-    const ids = pickWinners(pool, args.count)
-    if (ids.length < args.count) throw new Error("Couldn't pick enough unique winners.")
-    const winners = ids.map((teamId, idx) => ({ teamId, prizeRank: idx + 1 }))
+    const { pool } = await buildEntryPool(ctx)
     const game = await ctx.db.query('gameState').first()
+    const existing: { teamId: Id<'teams'>; prizeRank: number }[] = game?.drawWinners ?? []
+    const excludeIds = new Set(existing.map((w) => w.teamId))
+    const filteredPool = pool.filter((id) => !excludeIds.has(id))
+    const remainingEligible = new Set(filteredPool).size
+    if (remainingEligible < args.count) {
+      throw new Error(`Only ${remainingEligible} eligible team(s) remaining (excluding previous winners). Need at least ${args.count}.`)
+    }
+    const ids = pickWinners(filteredPool, args.count)
+    if (ids.length < args.count) throw new Error("Couldn't pick enough unique winners.")
+    const newWinners = ids.map((teamId, idx) => ({ teamId, prizeRank: existing.length + idx + 1 }))
+    const allWinners = [...existing, ...newWinners]
     if (game) {
-      await ctx.db.patch(game._id, { drawWinners: winners, drawAt: Date.now() })
+      await ctx.db.patch(game._id, { drawWinners: allWinners, drawAt: Date.now() })
     } else {
-      await ctx.db.insert('gameState', { isOpen: false, drawWinners: winners, drawAt: Date.now() })
+      await ctx.db.insert('gameState', { isOpen: false, drawWinners: allWinners, drawAt: Date.now() })
     }
     await logMentorAction(ctx, {
       mentorName: args.mentorName,
       action: 'draw',
-      metadata: { winners },
+      metadata: { winners: newWinners },
     })
-    return winners
+    return newWinners
   },
 })
 

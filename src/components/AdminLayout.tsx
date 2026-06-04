@@ -34,13 +34,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <h1 className="bh-display text-base font-bold text-white">
             CODE_EXP <span className="text-bh-lime">ADMIN</span>
           </h1>
-          <nav className="flex items-center gap-1 text-sm">
+          <nav className="flex items-center gap-1 text-sm flex-wrap">
             <NavTab to="/admin/queue" label="Queue" />
             <NavTab to="/admin/teams" label="Teams" />
             <NavTab to="/admin/game" label="Game" />
             <NavTab to="/admin/fanfavs" label="Fan favs" />
-            <NavTab to="/admin/ai" label="AI subs" />
             <NavTab to="/admin/submissions" label="Submissions" />
+            <NavTab to="/admin/photos" label="Photos" />
             {organiser && <NavTab to="/admin/draw" label="Draw" />}
           </nav>
           <div className="ml-auto flex items-center gap-2 text-xs text-bh-dim">

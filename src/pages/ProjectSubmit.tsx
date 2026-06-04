@@ -1,16 +1,13 @@
 import { useEffect, useState } from 'react'
-import { useAction, useMutation, useQuery } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../../convex/_generated/api'
 import { useTeam } from '../hooks/useTeam'
+import { formatTime } from '../lib/dates'
 import { friendlyError } from '../lib/errors'
 import { inspectZip, type ZipCheck } from '../lib/project'
 import { uploadToConvex } from '../lib/storage'
 import type { StorageId } from '../lib/types'
-
-type GithubCheck =
-  | { ok: true; isPublic: true; defaultBranch: string; description: string | null }
-  | { ok: false; isPublic: false; reason: string }
 
 export default function ProjectSubmit() {
   const { token } = useParams()
@@ -18,13 +15,10 @@ export default function ProjectSubmit() {
   const teamId = data?.team._id
   const existing = useQuery(api.codeSubmissions.getForTeam, teamId ? { teamId } : 'skip')
 
-  const checkRepoAction = useAction(api.githubCheck.check)
   const generateUploadUrl = useMutation(api.upload.generateUploadUrl)
   const saveSubmission = useMutation(api.codeSubmissions.save)
 
   const [githubUrl, setGithubUrl] = useState('')
-  const [githubCheck, setGithubCheck] = useState<GithubCheck | null>(null)
-  const [checkingRepo, setCheckingRepo] = useState(false)
   const [zipFile, setZipFile] = useState<File | null>(null)
   const [zipCheck, setZipCheck] = useState<ZipCheck | null>(null)
   const [inspectingZip, setInspectingZip] = useState(false)
@@ -39,15 +33,6 @@ export default function ProjectSubmit() {
   if (status === 'loading') return <div className="p-6 text-bh-dim bh-display text-xs">Loading…</div>
   if (status !== 'ok' || !data) return <div className="p-6 text-bh-magenta">Team not found.</div>
 
-  const runRepoCheck = async () => {
-    if (!githubUrl) return
-    setCheckingRepo(true)
-    setError(null)
-    const result = await checkRepoAction({ url: githubUrl })
-    setGithubCheck(result)
-    setCheckingRepo(false)
-  }
-
   const onZipPick = async (file: File | null) => {
     setZipFile(file)
     setZipCheck(null)
@@ -58,8 +43,8 @@ export default function ProjectSubmit() {
   }
 
   const submit = async () => {
-    if (!githubCheck?.ok) {
-      setError('Run the GitHub check first and make sure it passes.')
+    if (!githubUrl.trim()) {
+      setError('Enter a GitHub URL first.')
       return
     }
     setSubmitting(true)
@@ -97,8 +82,6 @@ export default function ProjectSubmit() {
       await saveSubmission({
         teamId: data.team._id,
         githubUrl: githubUrl.trim(),
-        githubIsPublic: githubCheck.isPublic,
-        githubCheckResponse: githubCheck,
         zipStorageId,
         zipFilename,
         zipClean,
@@ -127,36 +110,26 @@ export default function ProjectSubmit() {
           you <strong className="text-bh-lime">+1 bonus lucky-draw entry</strong>.
         </p>
 
+        {existing?.approvalStatus === 'rejected' && (
+          <div className="p-3 rounded-md ring-1 ring-red-500/40 bg-red-500/10 text-red-400 text-sm">
+            <strong className="bh-display tracking-wider">GitHub submission rejected.</strong>{' '}
+            Please re-submit below. Talk to your mentor for details.
+          </div>
+        )}
+        {existing?.approvalStatus === 'approved' && (
+          <div className="p-3 rounded-md ring-1 ring-bh-lime/40 bg-bh-lime/10 text-bh-lime text-sm bh-display tracking-wider">
+            GitHub submission approved — +1 lucky draw entry!
+          </div>
+        )}
+
         <section className="bh-card p-4 space-y-3">
           <h2 className="bh-display text-xs tracking-wider text-bh-lime">1. GITHUB REPO URL</h2>
           <input
             value={githubUrl}
-            onChange={(e) => {
-              setGithubUrl(e.target.value)
-              setGithubCheck(null)
-            }}
+            onChange={(e) => setGithubUrl(e.target.value)}
             placeholder="https://github.com/owner/repo"
             className="w-full rounded-md ring-1 ring-bh-line bg-black/40 px-3 py-2 text-sm text-white placeholder:text-bh-dim focus:ring-bh-lime focus:outline-none"
           />
-          <button
-            onClick={runRepoCheck}
-            disabled={!githubUrl || checkingRepo}
-            className="bh-btn-ghost text-sm disabled:opacity-50"
-          >
-            {checkingRepo ? 'Checking…' : 'Check repo'}
-          </button>
-          {githubCheck && (
-            <div
-              className={[
-                'p-3 rounded-md text-sm ring-1',
-                githubCheck.ok ? 'bg-bh-lime/10 text-bh-lime ring-bh-lime/40' : 'bg-bh-magenta/10 text-bh-magenta ring-bh-magenta/40',
-              ].join(' ')}
-            >
-              {githubCheck.ok
-                ? `Public ✓ — default branch ${githubCheck.defaultBranch}`
-                : githubCheck.reason}
-            </div>
-          )}
         </section>
 
         <section className="bh-card p-4 space-y-3">
@@ -193,7 +166,7 @@ export default function ProjectSubmit() {
 
         <button
           onClick={submit}
-          disabled={submitting || !githubCheck?.ok || (zipFile != null && zipCheck != null && !zipCheck.ok)}
+          disabled={submitting || !githubUrl.trim() || (zipFile != null && zipCheck != null && !zipCheck.ok)}
           className="bh-btn-primary w-full disabled:opacity-50 disabled:hover:bg-bh-lime disabled:hover:shadow-none"
         >
           {submitting ? 'Saving…' : 'Save submission'}
@@ -201,7 +174,7 @@ export default function ProjectSubmit() {
         {error && <div className="text-sm text-bh-magenta">{error}</div>}
         {savedAt && (
           <div className="text-sm text-bh-lime bh-display tracking-wider">
-            Saved at {savedAt.toLocaleTimeString()}. {bonusEarned ? '★ BONUS ENTRY SECURED' : ''}
+            Saved at {formatTime(savedAt)}. {bonusEarned ? '★ BONUS ENTRY SECURED' : ''}
           </div>
         )}
       </div>

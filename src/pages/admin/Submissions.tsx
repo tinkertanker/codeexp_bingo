@@ -3,6 +3,7 @@ import { useMutation, useQuery } from 'convex/react'
 import AdminLayout from '../../components/AdminLayout'
 import { api } from '../../../convex/_generated/api'
 import { categoryLabel } from '../../lib/categories'
+import { formatDate } from '../../lib/dates'
 import { friendlyError } from '../../lib/errors'
 import { problemStatementMission } from '../../lib/problemStatements'
 
@@ -130,7 +131,7 @@ function Body({ mentorName, passcode }: { mentorName: string; passcode: string }
                   <a href={s.driveUrl} target="_blank" rel="noreferrer" className="text-xs text-bh-cyan underline break-all">
                     {s.driveUrl}
                   </a>
-                  <div className="text-[0.65rem] text-bh-dim mt-0.5">Submitted {new Date(s.submittedAt).toLocaleString()}</div>
+                  <div className="text-[0.65rem] text-bh-dim mt-0.5">Submitted {formatDate(s.submittedAt)}</div>
                 </div>
                 <span
                   className={[

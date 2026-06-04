@@ -73,14 +73,32 @@ export default function TeamHome() {
         />
         <EligibilityCard team={data.team} squares={data.squares} />
         <FanFavCard team={data.team} />
+        {data.githubRejected && (
+          <div className="mt-3 p-3 rounded-md ring-1 ring-red-500/40 bg-red-500/10 text-red-400 text-sm">
+            <strong className="bh-display tracking-wider">GitHub submission rejected.</strong>{' '}
+            Please re-submit your GitHub link. Talk to your mentor for details.
+          </div>
+        )}
+        {data.completions
+          .filter((c) => c.status === 'rejected' && c.photoStorageId)
+          .map((c) => {
+            const sq = data.squares.find((s) => s._id === c.squareId)
+            return (
+              <div key={c._id} className="mt-3 p-3 rounded-md ring-1 ring-red-500/40 bg-red-500/10 text-red-400 text-sm">
+                <strong className="bh-display tracking-wider">Photo rejected{sq ? ` — ${sq.title}` : ''}.</strong>{' '}
+                Please re-submit your photo. Talk to your mentor for details.
+              </div>
+            )
+          })
+        }
         <div className="mt-6">
           <h2 className="bh-display text-xs tracking-wider text-bh-dim mb-2">CODE_EXP actions</h2>
           <div className="grid grid-cols-2 gap-2">
-          <Link to={`/t/${data.team.token}/project`} className="bh-btn-primary text-sm">
+          <Link to={`/t/${data.team.token}/project`} className="bh-btn-primary text-sm text-center">
             Project submission
           </Link>
           {effectiveCategory(data.team) === 'cat2' && (
-            <Link to={`/t/${data.team.token}/ai-submission`} className="bh-btn-primary text-sm">
+            <Link to={`/t/${data.team.token}/ai-submission`} className="bh-btn-primary text-sm text-center">
               Innovative use of AI
             </Link>
           )}
@@ -107,7 +125,7 @@ function InstructionsModal({ onClose }: { onClose: () => void }) {
               <li>Complete a task to earn the square</li>
               <li>Each line complete = 1 lucky draw opportunity</li>
               <li>Some tasks will be released throughout the event</li>
-              <li>Deadline: <strong className="text-white">15:30, 11 June</strong></li>
+              <li>Deadline: <strong className="text-white">15:00, 11/06/2026</strong></li>
             </ul>
           </section>
           <section>
@@ -127,7 +145,7 @@ function InstructionsModal({ onClose }: { onClose: () => void }) {
             </ul>
           </section>
           <section>
-            <h3 className="bh-display text-xs tracking-wider text-bh-magenta mb-1">Red tasks</h3>
+            <h3 className="bh-display text-xs tracking-wider text-red-500 mb-1">Red tasks</h3>
             <ul className="list-disc pl-4 space-y-0.5 text-bh-dim">
               <li>Declare you've completed these features using the buttons in-app</li>
               <li>Your mentor will confirm — each confirmed feature grants an <strong className="text-bh-lime">extra lucky draw chance!</strong></li>
