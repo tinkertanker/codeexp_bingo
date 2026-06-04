@@ -2,7 +2,7 @@ import { v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
 import { assertAdmin } from './admin'
-import { isSquareReleased } from './lib'
+import { isSquareClosed, isSquareReleased } from './lib'
 import { logMentorAction } from './mentorActions'
 
 // (4a) Self-declared eligibility for orange "find a team that did X" squares.
@@ -35,6 +35,9 @@ export const declare = mutation({
     if (!square) throw new Error('Square not found.')
     if (square.category !== 'orange') {
       throw new Error('Only orange "find a team that did X" squares need a self-declaration.')
+    }
+    if (isSquareClosed(square)) {
+      throw new Error('This task is closed — it has expired and can no longer be declared.')
     }
     if (!isSquareReleased(square)) {
       throw new Error('This challenge has not been released yet.')

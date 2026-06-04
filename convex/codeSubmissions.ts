@@ -43,6 +43,7 @@ export const save = mutation({
       .withIndex('by_team', (q) => q.eq('teamId', args.teamId))
       .unique()
     if (existing) {
+      const urlChanged = existing.githubUrl !== args.githubUrl
       await ctx.db.patch(existing._id, {
         githubUrl: args.githubUrl,
         githubIsPublic: args.githubIsPublic,
@@ -51,6 +52,7 @@ export const save = mutation({
         ...(args.zipFilename !== undefined ? { zipFilename: args.zipFilename } : {}),
         ...(args.zipClean !== undefined ? { zipClean: args.zipClean } : {}),
         ...(args.zipCheckResponse !== undefined ? { zipCheckResponse: args.zipCheckResponse } : {}),
+        ...(urlChanged ? { approvalStatus: 'pending' as const, approvedByMentor: undefined, approvedAt: undefined } : {}),
       })
       return existing._id
     }
