@@ -39,7 +39,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <NavTab to="/admin/teams" label="Teams" />
             <NavTab to="/admin/game" label="Game" />
             <NavTab to="/admin/fanfavs" label="Fan favs" />
-            <NavTab to="/admin/ai" label="AI subs" />
             <NavTab to="/admin/submissions" label="Submissions" />
             <NavTab to="/admin/photos" label="Photos" />
             {organiser && <NavTab to="/admin/draw" label="Draw" />}
