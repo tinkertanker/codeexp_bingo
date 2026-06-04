@@ -34,7 +34,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <h1 className="bh-display text-base font-bold text-white">
             CODE_EXP <span className="text-bh-lime">ADMIN</span>
           </h1>
-          <nav className="flex items-center gap-1 text-sm">
+          <nav className="flex items-center gap-1 text-sm flex-wrap">
             <NavTab to="/admin/queue" label="Queue" />
             <NavTab to="/admin/teams" label="Teams" />
             <NavTab to="/admin/game" label="Game" />

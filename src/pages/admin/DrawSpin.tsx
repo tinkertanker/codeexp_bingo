@@ -48,7 +48,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
   const clearWinners = useMutation(api.draw.clearWinners)
 
   const [phase, setPhase] = useState<Phase>('idle')
-  const [revealedIds, setRevealedIds] = useState<TeamId[]>([])
+  const [revealedWinners, setRevealedWinners] = useState<DrawWinner[]>([])
   const [tickName, setTickName] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [drawInProgress, setDrawInProgress] = useState(false)
@@ -94,7 +94,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
     }
     const winnerTeam = teamsById.get(w.teamId)
     setTickName(winnerTeam?.name ?? '???')
-    setRevealedIds((prev) => [...prev, w.teamId])
+    setRevealedWinners((prev) => [...prev, w])
     setPhase('revealed')
     await sleep(REVEAL_HOLD_MS)
     setPhase('done')
@@ -107,7 +107,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
       setError(`Only ${eligible.length} eligible team(s). Need at least ${drawCount} with one or more entries.`)
       return
     }
-    setRevealedIds([])
+    setRevealedWinners([])
     setDrawInProgress(true)
     for (let i = 0; i < drawCount; i++) {
       const ok = await drawOne()
@@ -124,7 +124,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
       setError(friendlyError(e, 'Clear failed.'))
       return
     }
-    setRevealedIds([])
+    setRevealedWinners([])
     setTickName(null)
     setPhase('idle')
   }
@@ -179,6 +179,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
       <div className="flex items-center gap-3 flex-wrap">
         <button
           onClick={async () => {
+            setRevealedWinners([])
             setDrawInProgress(true)
             await drawOne()
             setDrawInProgress(false)
@@ -212,12 +213,12 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
         )}
       </div>
 
-      {(revealedIds.length > 0 || (existingWinners.length > 0 && !drawInProgress)) && (
+      {(revealedWinners.length > 0 || (existingWinners.length > 0 && !drawInProgress)) && (
         <section>
           <h3 className="bh-display text-xs tracking-widest text-bh-lime mb-2">WINNERS</h3>
           <ol className="space-y-2">
-            {(revealedIds.length > 0
-              ? revealedIds.map((id, idx) => ({ teamId: id, prizeRank: existingWinners.length + idx + 1 }))
+            {(revealedWinners.length > 0
+              ? revealedWinners
               : existingWinners
             ).map((w) => {
               const t = teamsById.get(w.teamId)
