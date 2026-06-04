@@ -92,15 +92,15 @@ export const run = mutation({
     assertAdmin(args.passcode)
     assertOrganiser(args.mentorName)
     if (args.count < 1 || args.count > 10) throw new Error('count must be between 1 and 10.')
-    const { pool, eligibleCount } = await buildEntryPool(ctx)
+    const { pool } = await buildEntryPool(ctx)
     const game = await ctx.db.query('gameState').first()
     const existing: { teamId: Id<'teams'>; prizeRank: number }[] = game?.drawWinners ?? []
     const excludeIds = new Set(existing.map((w) => w.teamId))
-    const remainingEligible = eligibleCount - excludeIds.size
+    const filteredPool = pool.filter((id) => !excludeIds.has(id))
+    const remainingEligible = new Set(filteredPool).size
     if (remainingEligible < args.count) {
       throw new Error(`Only ${remainingEligible} eligible team(s) remaining (excluding previous winners). Need at least ${args.count}.`)
     }
-    const filteredPool = pool.filter((id) => !excludeIds.has(id))
     const ids = pickWinners(filteredPool, args.count)
     if (ids.length < args.count) throw new Error("Couldn't pick enough unique winners.")
     const newWinners = ids.map((teamId, idx) => ({ teamId, prizeRank: existing.length + idx + 1 }))
