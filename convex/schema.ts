@@ -48,6 +48,8 @@ export const mentorActionKind = v.union(
   v.literal('set_problem_statement'),
   v.literal('update_team_metadata'),
   v.literal('schedule_square'),
+  v.literal('approve_code_submission'),
+  v.literal('reject_code_submission'),
 )
 
 export default defineSchema({
@@ -81,6 +83,8 @@ export default defineSchema({
     // (4b) Timed release: a square is locked until releaseAt OR until manuallyReleased flips true.
     releaseAt: v.optional(v.number()),
     manuallyReleased: v.optional(v.boolean()),
+    // Manually closed (expired). Distinct from "not released" — shows "Task Closed" in the UI.
+    closedAt: v.optional(v.number()),
     // (5) Only teams of this category see/can complete this square. Others see a placeholder.
     restrictToCategory: v.optional(teamCategory),
     // Optional slug used by fixed event/booth QR posters, e.g. /claim/deepfake.
@@ -122,6 +126,10 @@ export default defineSchema({
     zipFilename: v.optional(v.string()),
     zipClean: v.optional(v.boolean()),
     zipCheckResponse: v.optional(v.any()),
+    // Manual approval gate for +1 lucky draw entry.
+    approvalStatus: v.optional(v.union(v.literal('pending'), v.literal('approved'), v.literal('rejected'))),
+    approvedByMentor: v.optional(v.string()),
+    approvedAt: v.optional(v.number()),
   }).index('by_team', ['teamId']),
 
   photos: defineTable({

@@ -68,8 +68,8 @@ A judged DSTA award, separate from the lucky-draw project submission. On `/t/:to
 
 ## Lucky draw
 
-- Entries: 1 per completed bingo line + 1 bonus for a clean ZIP upload.
-- Public GitHub URL is required for code submission but doesn't itself add an entry.
+- Entries: 1 per completed bingo line + 1 bonus for a clean ZIP upload + 1 bonus for a mentor-approved GitHub link submission + 1 per approved orange-square eligibility declaration.
+- GitHub link approval: when a team submits their code on `/t/:token/project`, the submission starts as `pending`. A mentor approves on `/admin/submissions` to grant the +1 entry. If the team re-submits with a different URL, approval resets to `pending`.
 - Draw flow: `/admin/draw` (organiser only) → `api.draw.run` mutation picks 3 weighted-random winners server-side and saves to `gameState.drawWinners` → in-app spin animation reveals them → scoreboard reactively shows the winners banner.
 
 ## Routes
@@ -91,6 +91,7 @@ A judged DSTA award, separate from the lucky-draw project submission. On `/t/:to
 - `/admin/game` — open/close game + live stats + per-square release schedule.
 - `/admin/fanfavs` — fan-favourite ranked tallies (per category).
 - `/admin/ai` — "Best use of AI" submissions list for judges.
+- `/admin/submissions` — all GitHub link submissions (with approve/reject for lucky draw bonus) + all AI submissions.
 - `/admin/draw` — run the lucky draw (organiser-only).
 
 ## Schema

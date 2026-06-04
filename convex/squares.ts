@@ -31,6 +31,7 @@ export const adminUpdateSchedule = mutation({
     releaseAt: v.optional(v.number()),
     clearReleaseAt: v.optional(v.boolean()),
     manuallyReleased: v.optional(v.union(v.boolean(), v.null())),
+    closed: v.optional(v.union(v.boolean(), v.null())),
   },
   handler: async (ctx: MutationCtx, args) => {
     assertAdmin(args.passcode)
@@ -44,6 +45,9 @@ export const adminUpdateSchedule = mutation({
 
     if (args.manuallyReleased === null) patch.manuallyReleased = undefined
     else if (typeof args.manuallyReleased === 'boolean') patch.manuallyReleased = args.manuallyReleased
+
+    if (args.closed === true) patch.closedAt = Date.now()
+    else if (args.closed === false || args.closed === null) patch.closedAt = undefined
 
     if (Object.keys(patch).length === 0) return
     await ctx.db.patch(args.squareId, patch)

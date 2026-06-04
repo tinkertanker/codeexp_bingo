@@ -3,6 +3,7 @@ import { useAction, useMutation, useQuery } from 'convex/react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../../convex/_generated/api'
 import { useTeam } from '../hooks/useTeam'
+import { friendlyError } from '../lib/errors'
 import { effectiveCategory } from '../lib/squares'
 
 type AiCheck =
@@ -73,7 +74,7 @@ export default function AiSubmission() {
       })
       setSavedAt(new Date())
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Save failed.')
+      setError(friendlyError(e, 'Save failed.'))
     }
     setSubmitting(false)
   }

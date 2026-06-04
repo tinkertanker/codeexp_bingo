@@ -46,8 +46,9 @@ export default function TeamHome() {
   const effectivelyFilled = effectivelyFilledFor(data.team, data.squares, data.completions)
   const lines = countCompletedLines(effectivelyFilled)
   const zipBonus = data.zipClean ? 1 : 0
+  const githubBonus = data.githubApproved ? 1 : 0
   const eligibilityBonus = data.eligibilities.filter((e) => e.status === 'approved').length
-  const entries = lines + zipBonus + eligibilityBonus
+  const entries = lines + zipBonus + githubBonus + eligibilityBonus
 
   return (
     <div className="min-h-screen p-3 sm:p-6">

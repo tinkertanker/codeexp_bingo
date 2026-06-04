@@ -2,13 +2,20 @@ import type { BingoSquare, Team } from './types'
 
 // (4b) Keep in sync with convex/lib.ts::isSquareReleased.
 export function isSquareReleased(
-  square: Pick<BingoSquare, 'releaseAt' | 'manuallyReleased'>,
+  square: Pick<BingoSquare, 'releaseAt' | 'manuallyReleased' | 'closedAt'>,
   now: number = Date.now(),
 ): boolean {
+  if (square.closedAt !== undefined) return false
   if (square.manuallyReleased === false) return false
   if (square.manuallyReleased === true) return true
   if (square.releaseAt === undefined) return true
   return now >= square.releaseAt
+}
+
+export function isSquareClosed(
+  square: Pick<BingoSquare, 'closedAt'>,
+): boolean {
+  return square.closedAt !== undefined
 }
 
 // (5) cat1 is the default for any team without a category set yet.

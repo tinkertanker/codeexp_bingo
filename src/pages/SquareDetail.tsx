@@ -6,7 +6,8 @@ import QRScanner from '../components/QRScanner'
 import { api } from '../../convex/_generated/api'
 import { useTeam } from '../hooks/useTeam'
 import { parseTeamToken } from '../lib/qr'
-import { isCategoryLocked, isSquareReleased } from '../lib/squares'
+import { friendlyError } from '../lib/errors'
+import { isCategoryLocked, isSquareClosed, isSquareReleased } from '../lib/squares'
 import { uploadToConvex } from '../lib/storage'
 import type { BingoSquare, Team } from '../lib/types'
 
@@ -28,7 +29,8 @@ export default function SquareDetail() {
   const pending = existing?.status === 'pending'
   const rejected = existing?.status === 'rejected'
   const categoryLocked = isCategoryLocked(square, data.team)
-  const timedLocked = !categoryLocked && !isSquareReleased(square)
+  const closed = !categoryLocked && isSquareClosed(square)
+  const timedLocked = !categoryLocked && !closed && !isSquareReleased(square)
 
   const finishSubmit = async (resultPromise: Promise<Outcome>): Promise<{ ok: boolean; reason?: string }> => {
     const r = await resultPromise
@@ -49,6 +51,11 @@ export default function SquareDetail() {
         {categoryLocked && (
           <div className="p-3 rounded-md ring-1 ring-bh-line bg-bh-panel/60 text-bh-dim text-sm mb-4">
             <strong className="bh-display tracking-wider text-white">Not your category.</strong> This square is reserved for the other category — it's been auto-filled on your card so it doesn't block lines.
+          </div>
+        )}
+        {closed && !completed && (
+          <div className="p-3 rounded-md ring-1 ring-bh-magenta/40 bg-bh-magenta/10 text-bh-magenta text-sm mb-4">
+            <strong className="bh-display tracking-wider">Task Closed.</strong> This mission has expired and can no longer be completed.
           </div>
         )}
         {timedLocked && (
@@ -74,12 +81,12 @@ export default function SquareDetail() {
           </div>
         )}
 
-        {!data.gameOpen && !completed && !categoryLocked && !timedLocked && (
+        {!data.gameOpen && !completed && !categoryLocked && !timedLocked && !closed && (
           <div className="p-3 rounded-md ring-1 ring-bh-yellow/40 bg-bh-yellow/10 text-bh-yellow text-sm mb-4">
             The bingo is paused — submissions are locked. Try again once the game reopens.
           </div>
         )}
-        {!completed && !categoryLocked && !timedLocked && data.gameOpen && (
+        {!completed && !categoryLocked && !timedLocked && !closed && data.gameOpen && (
           <Verification team={data.team} square={square} onSubmit={finishSubmit} />
         )}
       </div>
@@ -124,8 +131,7 @@ function useTeamLookup() {
 }
 
 function asReason(e: unknown): string {
-  const msg = e instanceof Error ? e.message : String(e)
-  return msg.replace(/^Uncaught Error:\s*/, '').replace(/^Error:\s*/, '')
+  return friendlyError(e)
 }
 
 function ErrorBanner({ message }: { message: string }) {

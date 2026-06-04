@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useConvex, useMutation } from 'convex/react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../../convex/_generated/api'
+import { friendlyError } from '../lib/errors'
 import { loadTeamToken } from '../lib/token'
 import type { BingoSquare, Team } from '../lib/types'
 
@@ -56,7 +57,7 @@ export default function ClaimQr({ fixedClaimSlug }: { fixedClaimSlug?: string })
         await submitClaimQr({ teamId: t._id, squareId: sq._id })
       } catch (e) {
         if (cancelled) return
-        setError(e instanceof Error ? e.message : 'Claim failed.')
+        setError(friendlyError(e, 'Claim failed.'))
         setPhase('error')
         return
       }

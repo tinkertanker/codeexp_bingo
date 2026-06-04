@@ -3,6 +3,7 @@ import { useMutation, useQuery } from 'convex/react'
 import AdminLayout from '../../components/AdminLayout'
 import { api } from '../../../convex/_generated/api'
 import { isOrganiser } from '../../lib/admin'
+import { friendlyError } from '../../lib/errors'
 import type { BingoSquareId } from '../../lib/types'
 
 export default function GameControls() {
@@ -42,7 +43,7 @@ function Controls({ mentorName, passcode }: { mentorName: string; passcode: stri
         await adminForceSetOpen({ passcode, mentorName, isOpen: !(game?.isOpen ?? false) })
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Toggle failed.')
+      setError(friendlyError(e, 'Toggle failed.'))
     }
     setBusy(false)
   }
@@ -123,7 +124,7 @@ function Controls({ mentorName, passcode }: { mentorName: string; passcode: stri
                 `Done! Deleted ${parts.length > 0 ? parts.join(', ') : 'nothing'}.`,
               )
             } catch (e) {
-              setResetError(e instanceof Error ? e.message : 'Reset failed.')
+              setResetError(friendlyError(e, 'Reset failed.'))
             }
             setResetBusy(false)
           }}
@@ -153,7 +154,7 @@ function Controls({ mentorName, passcode }: { mentorName: string; passcode: stri
                 `Done! ${res.updated} updated, ${res.inserted} inserted (${res.totalSquares} total).`,
               )
             } catch (e) {
-              setSeedError(e instanceof Error ? e.message : 'Reseed failed.')
+              setSeedError(friendlyError(e, 'Reseed failed.'))
             }
             setSeedBusy(false)
           }}
@@ -177,6 +178,7 @@ type UpdateScheduleFn = (args: {
   releaseAt?: number
   clearReleaseAt?: boolean
   manuallyReleased?: boolean | null
+  closed?: boolean | null
 }) => Promise<unknown>
 
 function TimedSquares({
@@ -237,26 +239,29 @@ function ScheduleRow({
   const [err, setErr] = useState<string | null>(null)
 
   const now = Date.now()
-  const released =
-    square.manuallyReleased === false
-      ? false
-      : square.manuallyReleased === true
-      ? true
-      : square.releaseAt === undefined
-      ? true
-      : now >= square.releaseAt
+  const closed = square.closedAt !== undefined
+  const released = closed
+    ? false
+    : square.manuallyReleased === false
+    ? false
+    : square.manuallyReleased === true
+    ? true
+    : square.releaseAt === undefined
+    ? true
+    : now >= square.releaseAt
 
   const run = async (patch: {
     releaseAt?: number
     clearReleaseAt?: boolean
     manuallyReleased?: boolean | null
+    closed?: boolean | null
   }) => {
     setBusy(true)
     setErr(null)
     try {
       await updateSchedule({ passcode, mentorName, squareId: square._id, ...patch })
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Update failed.')
+      setErr(friendlyError(e, 'Update failed.'))
     }
     setBusy(false)
   }
@@ -267,10 +272,12 @@ function ScheduleRow({
         <span
           className={[
             'bh-display px-2 py-0.5 rounded text-[0.6rem] tracking-wider ring-1',
-            released ? 'ring-bh-lime text-bh-lime' : 'ring-bh-yellow text-bh-yellow',
+            closed
+              ? 'ring-bh-magenta text-bh-magenta'
+              : released ? 'ring-bh-lime text-bh-lime' : 'ring-bh-yellow text-bh-yellow',
           ].join(' ')}
         >
-          {released ? 'RELEASED' : 'LOCKED'}
+          {closed ? 'CLOSED' : released ? 'RELEASED' : 'LOCKED'}
         </span>
         <span className="bh-display text-xs text-bh-dim w-6 text-right tabular-nums">{square.position}</span>
         <span className="text-sm text-white truncate flex-1 min-w-[140px]">{square.title}</span>
@@ -323,6 +330,23 @@ function ScheduleRow({
         >
           Auto
         </button>
+        {closed ? (
+          <button
+            disabled={busy}
+            onClick={() => run({ closed: false })}
+            className="bh-display px-2 py-1.5 rounded text-[0.65rem] tracking-wider ring-1 ring-bh-cyan/40 text-bh-cyan hover:bg-bh-cyan/10 disabled:opacity-50"
+          >
+            Reopen
+          </button>
+        ) : (
+          <button
+            disabled={busy}
+            onClick={() => run({ closed: true })}
+            className="bh-display px-2 py-1.5 rounded text-[0.65rem] tracking-wider ring-1 ring-bh-magenta/60 text-bh-magenta hover:bg-bh-magenta/10 disabled:opacity-50"
+          >
+            Close task
+          </button>
+        )}
       </div>
       {err && <p className="text-xs text-bh-magenta mt-1">{err}</p>}
     </li>

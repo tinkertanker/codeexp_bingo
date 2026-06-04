@@ -2,7 +2,7 @@ import { v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
 import { assertEligible } from './eligibility'
-import { effectiveCategory, isSquareReleased } from './lib'
+import { effectiveCategory, isSquareClosed, isSquareReleased } from './lib'
 
 const APPROACH_LIMIT_PER_TEAM = 10
 
@@ -132,6 +132,9 @@ async function assertCanSubmit(
   await assertGameOpen(ctx)
   const square = await ctx.db.get(squareId)
   if (!square) throw new Error('Square not found.')
+  if (isSquareClosed(square)) {
+    throw new Error('This task is closed — it has expired and can no longer be completed.')
+  }
   if (!isSquareReleased(square)) {
     throw new Error("This square isn't unlocked yet. Check back later.")
   }
@@ -164,12 +167,9 @@ export const submitScanTeam = mutation({
   handler: async (ctx: MutationCtx, args) => {
     const square = await assertCanSubmit(ctx, args.teamId, args.squareId)
     // (4a) Orange squares: the scanned team must have an approved self-declaration.
+    // Self-scan is allowed — teams that implemented the feature in their own app can
+    // scan their own QR to earn the square, as long as their eligibility is approved.
     if (square.category === 'orange') {
-      if (args.scannedTeamId === args.teamId) {
-        throw new Error(
-          "Orange squares need to be completed by scanning a *different* team — declare your own eligibility instead.",
-        )
-      }
       await assertEligible(ctx, args.scannedTeamId, args.squareId)
     }
     const existing = await findExisting(ctx, args.teamId, args.squareId)

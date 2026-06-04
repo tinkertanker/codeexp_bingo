@@ -10,6 +10,7 @@ export type TeamData = {
   completions: SquareCompletion[]
   eligibilities: TeamEligibility[]
   zipClean: boolean
+  githubApproved: boolean
   gameOpen: boolean
   game: GameState | null
 }
@@ -50,6 +51,7 @@ export function useTeam(token: string | undefined) {
       completions,
       eligibilities,
       zipClean: codeSub?.zipClean === true,
+      githubApproved: codeSub?.approvalStatus === 'approved',
       gameOpen: game?.isOpen ?? false,
       game: game ?? null,
     }

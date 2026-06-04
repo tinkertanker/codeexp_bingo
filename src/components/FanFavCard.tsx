@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { categoryLabel } from '../lib/categories'
+import { friendlyError } from '../lib/errors'
 import { effectiveCategory } from '../lib/squares'
 import type { Team, TeamCategory, TeamId } from '../lib/types'
 
@@ -66,7 +67,7 @@ function CategoryBallot({
       await setBallot({ teamId: team._id, category, rankedTeamIds: ranked })
       setSaved(true)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Vote failed.')
+      setError(friendlyError(e, 'Vote failed.'))
     }
   }
 

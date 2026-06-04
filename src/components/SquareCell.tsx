@@ -22,9 +22,11 @@ export type SquareCellProps = {
   timedLocked?: boolean
   // (5) True when restrictToCategory doesn't match the viewing team — show category lock.
   categoryLocked?: boolean
+  // True when the square has been manually closed (expired).
+  closed?: boolean
 }
 
-export default function SquareCell({ square, status, href, timedLocked, categoryLocked }: SquareCellProps) {
+export default function SquareCell({ square, status, href, timedLocked, categoryLocked, closed }: SquareCellProps) {
   const c = categoryClasses[square.category]
 
   if (categoryLocked) {
@@ -43,6 +45,30 @@ export default function SquareCell({ square, status, href, timedLocked, category
         </div>
         <div className="mt-1 text-[0.55rem] text-bh-dim/70 leading-snug">
           This square is reserved for the other category.
+        </div>
+      </div>
+    )
+  }
+
+  if (closed && status !== 'approved') {
+    return (
+      <div
+        className={[
+          'relative aspect-square rounded-md p-2 sm:p-3 ring-1',
+          'flex flex-col items-center justify-center text-center',
+          'cursor-not-allowed opacity-60',
+          c.bg,
+          c.ring,
+        ].join(' ')}
+        aria-disabled
+        aria-label="Task closed"
+        title="Task closed"
+      >
+        <div className={['bh-display text-[0.55rem] sm:text-[0.65rem] font-bold uppercase tracking-wide leading-snug', c.ink].join(' ')}>
+          Task Closed
+        </div>
+        <div className="mt-1 text-[0.55rem] sm:text-[0.6rem] text-white/70 leading-snug">
+          This mission has expired.
         </div>
       </div>
     )
