@@ -7,7 +7,6 @@ import { friendlyError } from '../../lib/errors'
 import { computeStandings, type Standing } from '../../lib/standings'
 import type { DrawWinner, Team, TeamColour, TeamId } from '../../lib/types'
 
-const NUM_WINNERS = 3
 const SPIN_TICK_MS = 70
 const SPIN_DURATION_MS = 2400
 const REVEAL_HOLD_MS = 1400
@@ -53,6 +52,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
   const [tickName, setTickName] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [drawInProgress, setDrawInProgress] = useState(false)
+  const [drawCount, setDrawCount] = useState(3)
 
   if (bundle === undefined) {
     return <p className="text-sm text-bh-dim bh-display">Loading…</p>
@@ -70,39 +70,49 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
   const totalEntries = eligible.reduce((sum, s) => sum + s.entries, 0)
   const existingWinners: DrawWinner[] = bundle.game?.drawWinners ?? []
 
-  const startDraw = async () => {
+  const drawOne = async () => {
     setError(null)
-    if (eligible.length < NUM_WINNERS) {
-      setError(`Only ${eligible.length} eligible team(s). Need at least ${NUM_WINNERS} with one or more entries.`)
+    if (eligible.length === 0) {
+      setError('No eligible teams with entries.')
       return
     }
-    setRevealedIds([])
     setDrawInProgress(true)
     let winners: DrawWinner[]
     try {
-      winners = await runDraw({ passcode, mentorName, count: NUM_WINNERS })
+      winners = await runDraw({ passcode, mentorName, count: 1 })
     } catch (e) {
       setError(friendlyError(e, 'Draw failed.'))
       setPhase('error')
       setDrawInProgress(false)
       return
     }
-    for (const w of winners) {
-      setPhase('spinning')
-      const start = Date.now()
-      while (Date.now() - start < SPIN_DURATION_MS) {
-        const candidate = eligible[Math.floor(Math.random() * eligible.length)]
-        setTickName(candidate.team.name)
-        await sleep(SPIN_TICK_MS)
-      }
-      const winnerTeam = teamsById.get(w.teamId)
-      setTickName(winnerTeam?.name ?? '???')
-      setRevealedIds((prev) => [...prev, w.teamId])
-      setPhase('revealed')
-      await sleep(REVEAL_HOLD_MS)
+    const w = winners[0]
+    setPhase('spinning')
+    const start = Date.now()
+    while (Date.now() - start < SPIN_DURATION_MS) {
+      const candidate = eligible[Math.floor(Math.random() * eligible.length)]
+      setTickName(candidate.team.name)
+      await sleep(SPIN_TICK_MS)
     }
+    const winnerTeam = teamsById.get(w.teamId)
+    setTickName(winnerTeam?.name ?? '???')
+    setRevealedIds((prev) => [...prev, w.teamId])
+    setPhase('revealed')
+    await sleep(REVEAL_HOLD_MS)
     setPhase('done')
     setDrawInProgress(false)
+  }
+
+  const startDraw = async () => {
+    setError(null)
+    if (eligible.length < drawCount) {
+      setError(`Only ${eligible.length} eligible team(s). Need at least ${drawCount} with one or more entries.`)
+      return
+    }
+    setRevealedIds([])
+    for (let i = 0; i < drawCount; i++) {
+      await drawOne()
+    }
   }
 
   const reset = async () => {
@@ -123,8 +133,8 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
       <header className="bh-card p-4">
         <h2 className="bh-display text-xl font-bold mb-1 text-white">Lucky Draw</h2>
         <p className="text-sm text-bh-dim">
-          Picks {NUM_WINNERS} winners weighted by lucky-draw entries (one per completed bingo line + one bonus for a
-          clean ZIP submission). Result is broadcast to the live screen immediately.
+          Draw winners one at a time, weighted by lucky-draw entries (one per completed bingo line + bonuses).
+          Result is broadcast to the live screen immediately.
         </p>
         <div className="mt-2 bh-display text-[0.7rem] tracking-widest text-bh-lime">
           {eligible.length} ELIGIBLE TEAM(S) · {totalEntries} TOTAL ENTRIES
@@ -165,14 +175,31 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <button
-          onClick={startDraw}
-          disabled={phase === 'spinning' || phase === 'revealed'}
+          onClick={drawOne}
+          disabled={phase === 'spinning' || phase === 'revealed' || drawInProgress}
           className="bh-btn-primary disabled:opacity-50 disabled:hover:bg-bh-lime disabled:hover:shadow-none"
         >
-          {existingWinners.length > 0 ? 'Re-draw' : `Draw ${NUM_WINNERS} winners`}
+          Draw 1 winner
         </button>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={1}
+            max={10}
+            value={drawCount}
+            onChange={(e) => setDrawCount(Math.max(1, Math.min(10, Number(e.target.value))))}
+            className="w-14 rounded-md ring-1 ring-bh-line bg-black/40 px-2 py-1.5 text-sm text-white text-center focus:ring-bh-lime focus:outline-none"
+          />
+          <button
+            onClick={startDraw}
+            disabled={phase === 'spinning' || phase === 'revealed' || drawInProgress}
+            className="bh-btn-ghost text-sm disabled:opacity-50"
+          >
+            Draw {drawCount} in a row
+          </button>
+        </div>
         {existingWinners.length > 0 && phase !== 'spinning' && phase !== 'revealed' && (
           <button onClick={reset} className="bh-display px-3 py-2 rounded-md ring-1 ring-bh-line text-bh-dim hover:text-bh-magenta hover:ring-bh-magenta/40 text-xs tracking-wider">
             Clear winners

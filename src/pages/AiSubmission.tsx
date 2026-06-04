@@ -3,6 +3,7 @@ import { useAction, useMutation, useQuery } from 'convex/react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../../convex/_generated/api'
 import { useTeam } from '../hooks/useTeam'
+import { formatDate, formatTime } from '../lib/dates'
 import { friendlyError } from '../lib/errors'
 import { effectiveCategory } from '../lib/squares'
 
@@ -10,7 +11,7 @@ type AiCheck =
   | { ok: true; accessible: true; title: string | null }
   | { ok: false; accessible: false; reason: string }
 
-const DEADLINE_LABEL = '10 Jun 2026, 6:00 PM (SGT)'
+const DEADLINE_LABEL = '10/06/2026, 6:00 PM (SGT)'
 
 export default function AiSubmission() {
   const { token } = useParams()
@@ -130,25 +131,30 @@ export default function AiSubmission() {
 
         <button
           onClick={submit}
-          disabled={submitting || deadlinePassed || !driveUrl.trim()}
+          disabled={submitting || deadlinePassed || !driveUrl.trim() || check?.ok === false}
           className="bh-btn-primary w-full disabled:opacity-50 disabled:hover:bg-bh-lime disabled:hover:shadow-none"
         >
           {submitting ? 'Saving…' : 'Save submission'}
         </button>
-        {!check?.ok && driveUrl.trim() && !deadlinePassed && (
+        {check === null && driveUrl.trim() && !deadlinePassed && (
           <p className="text-xs text-bh-dim">
-            Tip: run the accessibility check first so DSTA can definitely open your file. You can still save without it.
+            Tip: run the accessibility check first so DSTA can definitely open your file.
+          </p>
+        )}
+        {check?.ok === false && (
+          <p className="text-xs text-bh-magenta">
+            Fix the link accessibility issue above before saving.
           </p>
         )}
         {error && <div className="text-sm text-bh-magenta">{error}</div>}
         {existing && !savedAt && (
           <div className="text-xs text-bh-dim bh-display tracking-wider">
             On file: {existing.accessible === true ? 'accessible ✓' : existing.accessible === false ? 'not yet accessible' : 'unverified'} ·{' '}
-            submitted {new Date(existing.submittedAt).toLocaleString()}
+            submitted {formatDate(existing.submittedAt)}
           </div>
         )}
         {savedAt && (
-          <div className="text-sm text-bh-lime bh-display tracking-wider">Saved at {savedAt.toLocaleTimeString()}.</div>
+          <div className="text-sm text-bh-lime bh-display tracking-wider">Saved at {formatTime(savedAt)}.</div>
         )}
       </div>
     </div>

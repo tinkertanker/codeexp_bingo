@@ -85,3 +85,38 @@ export const rejectCompletion = mutation({
     })
   },
 })
+
+export const rejectApprovedPhoto = mutation({
+  args: {
+    passcode: v.string(),
+    mentorName: v.string(),
+    completionId: v.id('squareCompletions'),
+  },
+  handler: async (ctx: MutationCtx, args) => {
+    assertAdmin(args.passcode)
+    if (!args.mentorName.trim()) throw new Error('mentorName is required for the audit trail.')
+    const completion = await ctx.db.get(args.completionId)
+    if (!completion) throw new Error('Completion not found.')
+    if (completion.status !== 'approved') throw new Error('Can only reject currently-approved completions.')
+    // Remove from photos table + storage
+    const photos = await ctx.db.query('photos').collect()
+    for (const p of photos) {
+      if (p.completionId === args.completionId) {
+        await ctx.storage.delete(p.storageId)
+        await ctx.db.delete(p._id)
+      }
+    }
+    await ctx.db.patch(args.completionId, {
+      status: 'rejected',
+      approvedByMentor: args.mentorName,
+      approvedAt: Date.now(),
+      rejectedReason: 'Photo rejected by admin',
+    })
+    await logMentorAction(ctx, {
+      mentorName: args.mentorName,
+      action: 'reject',
+      completionId: args.completionId,
+      metadata: { reason: 'Photo rejected after approval' },
+    })
+  },
+})

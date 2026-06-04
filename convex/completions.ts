@@ -342,6 +342,25 @@ export const submitClaimQr = mutation({
   },
 })
 
+export const listApprovedPhotos = query({
+  args: {},
+  handler: async (ctx: QueryCtx) => {
+    const approved = await ctx.db
+      .query('squareCompletions')
+      .withIndex('by_status', (q) => q.eq('status', 'approved'))
+      .collect()
+    const withPhotos = approved.filter((c) => c.photoStorageId)
+    return await Promise.all(
+      withPhotos.map(async (c) => {
+        const team = await ctx.db.get(c.teamId)
+        const square = await ctx.db.get(c.squareId)
+        const photoUrl = c.photoStorageId ? await ctx.storage.getUrl(c.photoStorageId) : null
+        return { completion: c, team, square, photoUrl }
+      }),
+    )
+  },
+})
+
 export const listPending = query({
   args: {},
   handler: async (ctx: QueryCtx) => {

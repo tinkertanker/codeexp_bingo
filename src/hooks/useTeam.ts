@@ -11,6 +11,7 @@ export type TeamData = {
   eligibilities: TeamEligibility[]
   zipClean: boolean
   githubApproved: boolean
+  githubRejected: boolean
   gameOpen: boolean
   game: GameState | null
 }
@@ -52,6 +53,7 @@ export function useTeam(token: string | undefined) {
       eligibilities,
       zipClean: codeSub?.zipClean === true,
       githubApproved: codeSub?.approvalStatus === 'approved',
+      githubRejected: codeSub?.approvalStatus === 'rejected',
       gameOpen: game?.isOpen ?? false,
       game: game ?? null,
     }
