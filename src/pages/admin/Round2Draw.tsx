@@ -75,7 +75,11 @@ function Draw() {
     setError(null)
     setDrawInProgress(true)
     const batchSize = Math.min(BATCH_SIZE, remaining.length)
-    const shuffled = [...remaining].sort(() => Math.random() - 0.5)
+    const shuffled = [...remaining]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
     const batch = shuffled.slice(0, batchSize)
     const localDrawn = new Set<string>()
 
