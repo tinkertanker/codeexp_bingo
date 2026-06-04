@@ -42,6 +42,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <NavTab to="/admin/submissions" label="Submissions" />
             <NavTab to="/admin/photos" label="Photos" />
             {organiser && <NavTab to="/admin/draw" label="Draw" />}
+            {organiser && <NavTab to="/admin/round2" label="Round 2" />}
           </nav>
           <div className="ml-auto flex items-center gap-2 text-xs text-bh-dim">
             <span className="bh-display tracking-wider">

@@ -20,6 +20,7 @@ const FanFavs = lazy(() => import('./pages/admin/FanFavs'))
 const AiSubmissions = lazy(() => import('./pages/admin/AiSubmissions'))
 const Submissions = lazy(() => import('./pages/admin/Submissions'))
 const Photos = lazy(() => import('./pages/admin/Photos'))
+const Round2Draw = lazy(() => import('./pages/admin/Round2Draw'))
 
 function Loading() {
   return <div className="p-6 text-bh-dim bh-display text-xs">Loading…</div>
@@ -50,6 +51,7 @@ function App() {
           <Route path="/admin/ai" element={<AiSubmissions />} />
           <Route path="/admin/submissions" element={<Submissions />} />
           <Route path="/admin/photos" element={<Photos />} />
+          <Route path="/admin/round2" element={<Round2Draw />} />
         </Routes>
       </Suspense>
     </BrowserRouter>
