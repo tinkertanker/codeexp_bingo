@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useQuery } from 'convex/react'
 import QRCode from 'qrcode'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { api } from '../../convex/_generated/api'
 
 function claimUrl(claimSlug: string): string {
@@ -38,9 +38,7 @@ export default function ClaimQrDisplay() {
         {square === null && (
           <p className="mt-3 text-sm text-red-700">This claim slug is not configured in Convex yet.</p>
         )}
-        <Link to={`/claim/${claimSlug}`} className="inline-flex mt-6 px-3 py-2 rounded-md bg-black text-white text-sm">
-          Test claim page
-        </Link>
+
       </div>
     </div>
   )

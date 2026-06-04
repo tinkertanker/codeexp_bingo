@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import AdminLayout from '../../components/AdminLayout'
 import { api } from '../../../convex/_generated/api'
+import { friendlyError } from '../../lib/errors'
 import type { SquareCompletionId } from '../../lib/types'
 import type { Id } from '../../../convex/_generated/dataModel'
 
@@ -29,7 +30,7 @@ function Queue({ mentorName, passcode }: { mentorName: string; passcode: string 
     try {
       await approve({ passcode, mentorName, completionId })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Approve failed.')
+      setError(friendlyError(e, 'Approve failed.'))
     }
     setBusyId(null)
   }
@@ -42,7 +43,7 @@ function Queue({ mentorName, passcode }: { mentorName: string; passcode: string 
     try {
       await reject({ passcode, mentorName, completionId, reason })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Reject failed.')
+      setError(friendlyError(e, 'Reject failed.'))
     }
     setBusyId(null)
   }
@@ -53,7 +54,7 @@ function Queue({ mentorName, passcode }: { mentorName: string; passcode: string 
     try {
       await approveEligibility({ passcode, mentorName, eligibilityId })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Approve failed.')
+      setError(friendlyError(e, 'Approve failed.'))
     }
     setBusyId(null)
   }
@@ -66,7 +67,7 @@ function Queue({ mentorName, passcode }: { mentorName: string; passcode: string 
     try {
       await rejectEligibility({ passcode, mentorName, eligibilityId, reason })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Reject failed.')
+      setError(friendlyError(e, 'Reject failed.'))
     }
     setBusyId(null)
   }

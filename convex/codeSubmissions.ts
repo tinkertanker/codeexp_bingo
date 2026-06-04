@@ -1,5 +1,7 @@
 import { v } from 'convex/values'
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
+import { assertAdmin } from './admin'
+import { logMentorAction } from './mentorActions'
 
 export const getForTeam = query({
   args: { teamId: v.id('teams') },
@@ -17,7 +19,10 @@ export const getForTeam = query({
 export const listAll = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
-    return await ctx.db.query('codeSubmissions').collect()
+    const subs = await ctx.db.query('codeSubmissions').collect()
+    const teams = await ctx.db.query('teams').collect()
+    const teamMap = new Map(teams.map((t) => [t._id, t]))
+    return subs.map((s) => ({ ...s, team: teamMap.get(s.teamId) ?? null }))
   },
 })
 
@@ -49,6 +54,31 @@ export const save = mutation({
       })
       return existing._id
     }
-    return await ctx.db.insert('codeSubmissions', args)
+    return await ctx.db.insert('codeSubmissions', { ...args, approvalStatus: 'pending' as const })
+  },
+})
+
+export const setApprovalStatus = mutation({
+  args: {
+    passcode: v.string(),
+    mentorName: v.string(),
+    submissionId: v.id('codeSubmissions'),
+    status: v.union(v.literal('approved'), v.literal('rejected')),
+  },
+  handler: async (ctx: MutationCtx, args) => {
+    assertAdmin(args.passcode)
+    if (!args.mentorName.trim()) throw new Error('mentorName is required.')
+    const sub = await ctx.db.get(args.submissionId)
+    if (!sub) throw new Error('Submission not found.')
+    await ctx.db.patch(args.submissionId, {
+      approvalStatus: args.status,
+      approvedByMentor: args.mentorName,
+      approvedAt: Date.now(),
+    })
+    await logMentorAction(ctx, {
+      mentorName: args.mentorName,
+      action: args.status === 'approved' ? 'approve_code_submission' : 'reject_code_submission',
+      metadata: { submissionId: args.submissionId, teamId: sub.teamId },
+    })
   },
 })

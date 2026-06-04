@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
+import { friendlyError } from '../lib/errors'
+import { isSquareClosed, isSquareReleased } from '../lib/squares'
 import type { BingoSquare, BingoSquareId, Team, TeamEligibility } from '../lib/types'
-import { isSquareReleased } from '../lib/squares'
 
 // (4a) Self-declared eligibility for orange "find a team that did X" squares.
 // Team taps "Declare we qualify" → pending → mentor approves on /admin/queue → approved.
@@ -33,7 +34,7 @@ export default function EligibilityCard({ team, squares }: { team: Team; squares
     try {
       await declare({ teamId: team._id, squareId })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Declaration failed.')
+      setError(friendlyError(e, 'Declaration failed.'))
     }
     setBusyId(null)
   }
@@ -44,7 +45,7 @@ export default function EligibilityCard({ team, squares }: { team: Team; squares
     try {
       await withdraw({ teamId: team._id, squareId })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Withdraw failed.')
+      setError(friendlyError(e, 'Withdraw failed.'))
     }
     setBusyId(null)
   }
@@ -58,7 +59,18 @@ export default function EligibilityCard({ team, squares }: { team: Team; squares
       <ul className="space-y-1.5">
         {orangeSquares.map((sq) => {
           const e = byId.get(sq._id)
+          const closed = isSquareClosed(sq)
           const released = isSquareReleased(sq)
+          if (closed && (!e || e.status !== 'approved')) {
+            return (
+              <li
+                key={sq._id}
+                className="flex items-center gap-2 rounded ring-1 ring-bh-line/40 bg-black/20 px-2 py-1.5 opacity-60"
+              >
+                <span className="text-xs text-bh-dim flex-1 italic">Task closed — this mission has expired.</span>
+              </li>
+            )
+          }
           if (!released && (!e || e.status === 'rejected')) {
             return (
               <li

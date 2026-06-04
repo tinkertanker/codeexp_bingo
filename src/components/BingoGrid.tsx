@@ -1,4 +1,4 @@
-import { isCategoryLocked, isSquareReleased } from '../lib/squares'
+import { isCategoryLocked, isSquareClosed, isSquareReleased } from '../lib/squares'
 import type { BingoSquare, SquareCompletion, Team } from '../lib/types'
 import SquareCell from './SquareCell'
 
@@ -24,7 +24,8 @@ export default function BingoGrid({ team, squares, completions, hrefForSquare }:
       {ordered.map((sq) => {
         const completion = completionByPosition.get(sq.position)
         const categoryLocked = isCategoryLocked(sq, team)
-        const timedLocked = !categoryLocked && !isSquareReleased(sq, now) && !completion
+        const closed = !categoryLocked && isSquareClosed(sq)
+        const timedLocked = !categoryLocked && !closed && !isSquareReleased(sq, now) && !completion
         return (
           <SquareCell
             key={sq._id}
@@ -33,6 +34,7 @@ export default function BingoGrid({ team, squares, completions, hrefForSquare }:
             href={hrefForSquare(sq)}
             timedLocked={timedLocked}
             categoryLocked={categoryLocked}
+            closed={closed}
           />
         )
       })}

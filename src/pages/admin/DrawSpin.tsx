@@ -3,6 +3,7 @@ import { useMutation, useQuery } from 'convex/react'
 import AdminLayout from '../../components/AdminLayout'
 import { api } from '../../../convex/_generated/api'
 import { isOrganiser } from '../../lib/admin'
+import { friendlyError } from '../../lib/errors'
 import { computeStandings, type Standing } from '../../lib/standings'
 import type { DrawWinner, Team, TeamColour, TeamId } from '../../lib/types'
 
@@ -81,7 +82,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
     try {
       winners = await runDraw({ passcode, mentorName, count: NUM_WINNERS })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Draw failed.')
+      setError(friendlyError(e, 'Draw failed.'))
       setPhase('error')
       setDrawInProgress(false)
       return
@@ -109,7 +110,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
     try {
       await clearWinners({ passcode, mentorName })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Clear failed.')
+      setError(friendlyError(e, 'Clear failed.'))
       return
     }
     setRevealedIds([])

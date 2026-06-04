@@ -59,8 +59,9 @@ async function buildEntryPool(
     const lines = countLines(positions)
     const sub = subByTeam.get(team._id)
     const bonus = sub?.zipClean === true ? 1 : 0
+    const githubBonus = sub?.approvalStatus === 'approved' ? 1 : 0
     const eligibilityBonus = eligByTeam.get(team._id) ?? 0
-    const entries = Math.min(lines, NUM_LINES) + bonus + eligibilityBonus
+    const entries = Math.min(lines, NUM_LINES) + bonus + githubBonus + eligibilityBonus
     if (entries > 0) eligibleCount += 1
     for (let i = 0; i < entries; i++) pool.push(team._id)
   }
