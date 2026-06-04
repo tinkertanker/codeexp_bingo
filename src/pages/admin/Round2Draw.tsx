@@ -77,16 +77,19 @@ function Draw() {
     const batchSize = Math.min(BATCH_SIZE, remaining.length)
     const shuffled = [...remaining].sort(() => Math.random() - 0.5)
     const batch = shuffled.slice(0, batchSize)
+    const localDrawn = new Set<string>()
 
     for (const name of batch) {
+      const candidates = remaining.filter((n) => !localDrawn.has(n))
       setPhase('spinning')
       const start = Date.now()
       while (Date.now() - start < SPIN_DURATION_MS) {
-        const candidate = remaining[Math.floor(Math.random() * remaining.length)]
+        const candidate = candidates[Math.floor(Math.random() * candidates.length)]
         setTickName(candidate)
         await sleep(SPIN_TICK_MS)
       }
       setTickName(name)
+      localDrawn.add(name)
       setDrawn((prev) => [...prev, name])
       setPhase('revealed')
       await sleep(REVEAL_HOLD_MS)
@@ -149,7 +152,7 @@ function Draw() {
           <span className="bh-display tracking-wider text-bh-lime">{pool.length} TEAMS LOCKED</span>
           <span>·</span>
           <span>{remaining.length} remaining</span>
-          <button onClick={unlock} className="ml-auto text-xs bh-display tracking-wider text-bh-dim hover:text-bh-magenta">
+          <button onClick={unlock} disabled={drawInProgress} className="ml-auto text-xs bh-display tracking-wider text-bh-dim hover:text-bh-magenta disabled:opacity-50">
             Edit teams
           </button>
         </section>
