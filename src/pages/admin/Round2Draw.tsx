@@ -40,7 +40,7 @@ function Draw() {
   const [error, setError] = useState<string | null>(null)
   const [locked, setLocked] = useState(false)
 
-  const validNames = teamInputs.map((n) => n.trim()).filter(Boolean)
+  const validNames = [...new Set(teamInputs.map((n) => n.trim()).filter(Boolean))]
   const remaining = pool.filter((n) => !drawn.includes(n))
 
   const lockTeams = () => {
