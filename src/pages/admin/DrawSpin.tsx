@@ -70,21 +70,19 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
   const totalEntries = eligible.reduce((sum, s) => sum + s.entries, 0)
   const existingWinners: DrawWinner[] = bundle.game?.drawWinners ?? []
 
-  const drawOne = async () => {
+  const drawOne = async (): Promise<boolean> => {
     setError(null)
     if (eligible.length === 0) {
       setError('No eligible teams with entries.')
-      return
+      return false
     }
-    setDrawInProgress(true)
     let winners: DrawWinner[]
     try {
       winners = await runDraw({ passcode, mentorName, count: 1 })
     } catch (e) {
       setError(friendlyError(e, 'Draw failed.'))
       setPhase('error')
-      setDrawInProgress(false)
-      return
+      return false
     }
     const w = winners[0]
     setPhase('spinning')
@@ -100,7 +98,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
     setPhase('revealed')
     await sleep(REVEAL_HOLD_MS)
     setPhase('done')
-    setDrawInProgress(false)
+    return true
   }
 
   const startDraw = async () => {
@@ -110,9 +108,12 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
       return
     }
     setRevealedIds([])
+    setDrawInProgress(true)
     for (let i = 0; i < drawCount; i++) {
-      await drawOne()
+      const ok = await drawOne()
+      if (!ok) break
     }
+    setDrawInProgress(false)
   }
 
   const reset = async () => {
@@ -177,7 +178,11 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
 
       <div className="flex items-center gap-3 flex-wrap">
         <button
-          onClick={drawOne}
+          onClick={async () => {
+            setDrawInProgress(true)
+            await drawOne()
+            setDrawInProgress(false)
+          }}
           disabled={phase === 'spinning' || phase === 'revealed' || drawInProgress}
           className="bh-btn-primary disabled:opacity-50 disabled:hover:bg-bh-lime disabled:hover:shadow-none"
         >
@@ -212,7 +217,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
           <h3 className="bh-display text-xs tracking-widest text-bh-lime mb-2">WINNERS</h3>
           <ol className="space-y-2">
             {(revealedIds.length > 0
-              ? revealedIds.map((id, idx) => ({ teamId: id, prizeRank: idx + 1 }))
+              ? revealedIds.map((id, idx) => ({ teamId: id, prizeRank: existingWinners.length + idx + 1 }))
               : existingWinners
             ).map((w) => {
               const t = teamsById.get(w.teamId)
