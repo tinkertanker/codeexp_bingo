@@ -3,8 +3,8 @@ import AdminLayout from '../../components/AdminLayout'
 import { isOrganiser } from '../../lib/admin'
 
 const SPIN_TICK_MS = 70
-const SPIN_DURATION_MS = 4000
-const REVEAL_HOLD_MS = 2000
+const SPIN_DURATION_MS = 3000
+const REVEAL_HOLD_MS = 3000
 
 export default function Round2Draw() {
   return (
@@ -80,19 +80,28 @@ function Draw() {
     }
     const localDrawn = new Set<string>()
 
-    for (const name of shuffled) {
+    for (let idx = 0; idx < shuffled.length; idx++) {
+      const name = shuffled[idx]
+      const isLast = idx === shuffled.length - 1
       const candidates = remaining.filter((n) => !localDrawn.has(n))
-      setPhase('spinning')
-      const start = Date.now()
-      while (Date.now() - start < SPIN_DURATION_MS) {
-        const candidate = candidates[Math.floor(Math.random() * candidates.length)]
-        setTickName(candidate)
-        await sleep(SPIN_TICK_MS)
+
+      if (isLast) {
+        // Last team: skip spin, just reveal instantly
+        setTickName(name)
+        setPhase('revealed')
+      } else {
+        setPhase('spinning')
+        const start = Date.now()
+        while (Date.now() - start < SPIN_DURATION_MS) {
+          const candidate = candidates[Math.floor(Math.random() * candidates.length)]
+          setTickName(candidate)
+          await sleep(SPIN_TICK_MS)
+        }
+        setTickName(name)
+        setPhase('revealed')
       }
-      setTickName(name)
       localDrawn.add(name)
       setDrawn((prev) => [...prev, name])
-      setPhase('revealed')
       await sleep(REVEAL_HOLD_MS)
     }
     setPhase('done')
