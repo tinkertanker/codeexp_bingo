@@ -3,9 +3,8 @@ import AdminLayout from '../../components/AdminLayout'
 import { isOrganiser } from '../../lib/admin'
 
 const SPIN_TICK_MS = 70
-const SPIN_DURATION_MS = 2400
-const REVEAL_HOLD_MS = 1400
-const BATCH_SIZE = 4
+const SPIN_DURATION_MS = 4000
+const REVEAL_HOLD_MS = 2000
 
 export default function Round2Draw() {
   return (
@@ -67,23 +66,21 @@ function Draw() {
     setError(null)
   }
 
-  const drawBatch = async () => {
+  const drawAll = async () => {
     if (remaining.length === 0) {
       setError('All teams have been drawn.')
       return
     }
     setError(null)
     setDrawInProgress(true)
-    const batchSize = Math.min(BATCH_SIZE, remaining.length)
     const shuffled = [...remaining]
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1))
       ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
     }
-    const batch = shuffled.slice(0, batchSize)
     const localDrawn = new Set<string>()
 
-    for (const name of batch) {
+    for (const name of shuffled) {
       const candidates = remaining.filter((n) => !localDrawn.has(n))
       setPhase('spinning')
       const start = Date.now()
@@ -97,8 +94,8 @@ function Draw() {
       setDrawn((prev) => [...prev, name])
       setPhase('revealed')
       await sleep(REVEAL_HOLD_MS)
-      setPhase('done')
     }
+    setPhase('done')
     setDrawInProgress(false)
   }
 
@@ -115,7 +112,7 @@ function Draw() {
       <header className="bh-card p-4">
         <h2 className="bh-display text-xl font-bold mb-1 text-white">Round 2 — Presentation Order</h2>
         <p className="text-sm text-bh-dim">
-          Enter the team names, then draw {BATCH_SIZE} at a time to randomise presentation order.
+          Enter the team names, then draw to randomise their presentation order.
         </p>
       </header>
 
@@ -177,7 +174,7 @@ function Draw() {
             <div className="absolute -bottom-1 right-10 h-1 w-32 bg-bh-magenta" />
             <div className="relative">
               {phase === 'idle' && drawn.length === 0 && (
-                <p className="text-bh-dim bh-display tracking-wider">Press the button to draw the first batch.</p>
+                <p className="text-bh-dim bh-display tracking-wider">Press the button to draw all teams.</p>
               )}
               {phase === 'spinning' && (
                 <div className="bh-display text-5xl font-extrabold text-bh-lime animate-glitch drop-shadow-[0_0_18px_rgba(166,251,0,0.6)]">{tickName ?? '…'}</div>
@@ -185,16 +182,10 @@ function Draw() {
               {phase === 'revealed' && (
                 <div className="bh-display text-6xl font-extrabold text-bh-lime drop-shadow-[0_0_24px_rgba(166,251,0,0.85)]">★ {tickName} ★</div>
               )}
-              {phase === 'done' && remaining.length === 0 && (
+              {phase === 'done' && (
                 <div className="space-y-2">
                   <div className="bh-display text-4xl font-extrabold text-bh-lime">All teams drawn!</div>
                   <div className="text-sm text-bh-dim">Presentation order is set.</div>
-                </div>
-              )}
-              {phase === 'done' && remaining.length > 0 && (
-                <div className="space-y-2">
-                  <div className="bh-display text-3xl font-extrabold text-bh-lime">Batch complete!</div>
-                  <div className="text-sm text-bh-dim">{remaining.length} team(s) remaining — draw again when ready.</div>
                 </div>
               )}
               {phase === 'idle' && drawn.length > 0 && (
@@ -205,11 +196,11 @@ function Draw() {
 
           <div className="flex items-center gap-3 flex-wrap">
             <button
-              onClick={drawBatch}
+              onClick={drawAll}
               disabled={phase === 'spinning' || phase === 'revealed' || drawInProgress || remaining.length === 0}
               className="bh-btn-primary disabled:opacity-50 disabled:hover:bg-bh-lime disabled:hover:shadow-none"
             >
-              Draw next {Math.min(BATCH_SIZE, remaining.length)} team{Math.min(BATCH_SIZE, remaining.length) !== 1 ? 's' : ''}
+              Draw all {remaining.length} team{remaining.length !== 1 ? 's' : ''}
             </button>
             {drawn.length > 0 && !drawInProgress && (
               <button onClick={resetDraw} className="bh-display px-3 py-2 rounded-md ring-1 ring-bh-line text-bh-dim hover:text-bh-magenta hover:ring-bh-magenta/40 text-xs tracking-wider">
