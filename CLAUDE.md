@@ -44,7 +44,7 @@ Orange-square completion is no longer pure honour-code. Workflow:
 2. A mentor approves on `/admin/queue` (Eligibility section).
 3. Only then can another team scan that team's QR to claim the matching orange square.
 
-Any team QR can be used as an approached/scanned team at most 10 times across scan/photo-with-team missions. This cap is enforced in `convex/completions.ts`.
+Any team QR can be used as an approached/scanned team at most 10 times **per square category** (e.g. 10× for blue squares and 10× for orange/red squares independently). This cap is enforced in `convex/completions.ts`.
 
 ### Team categories (cat1 = Beginner / cat2 = Open)
 
