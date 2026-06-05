@@ -45,22 +45,26 @@ async function upsert(
 async function assertScannedTeamApproachLimit(
   ctx: MutationCtx,
   scannedTeamId: Id<'teams'>,
+  squareCategory: 'orange' | 'blue' | 'grey' | 'wild',
   excludeCompletionId?: Id<'squareCompletions'>,
 ): Promise<void> {
   const completions = await ctx.db
     .query('squareCompletions')
     .withIndex('by_scanned_team_id', (q) => q.eq('scannedTeamId', scannedTeamId))
     .filter((q) => q.neq(q.field('status'), 'rejected'))
-    .take(APPROACH_LIMIT_PER_TEAM + 1)
+    .collect()
 
   let counted = 0
   for (const completion of completions) {
     if (completion._id === excludeCompletionId) continue
+    const sq = await ctx.db.get(completion.squareId)
+    if (!sq || sq.category !== squareCategory) continue
     counted++
     if (counted >= APPROACH_LIMIT_PER_TEAM) {
       const scannedTeam = await ctx.db.get(scannedTeamId)
+      const label = squareCategory === 'orange' ? 'red' : squareCategory
       throw new Error(
-        `"${scannedTeam?.name ?? 'This team'}" has been approached the maximum ${APPROACH_LIMIT_PER_TEAM} times already. Try finding a different team to scan!`,
+        `"${scannedTeam?.name ?? 'This team'}" has been approached the maximum ${APPROACH_LIMIT_PER_TEAM} times for ${label} squares already. Try finding a different team to scan!`,
       )
     }
   }
@@ -101,6 +105,10 @@ async function checkBlueDistinctTeamRule(
   // Check same-colour reuse — all 5 blue squares must use a different colour.
   if (scannedTeam) {
     const TOTAL_COLOURS = 5
+    const ALL_COLOURS: string[] = ['red', 'blue', 'green', 'yellow', 'purple']
+    const COLOUR_DISPLAY: Record<string, string> = {
+      red: 'Magenta', blue: 'Cyan', green: 'Lime', yellow: 'Yellow', purple: 'Purple',
+    }
     const usedColours = new Set<string>()
     for (const c of myCompletions) {
       if (!otherIds.has(c.squareId) || c.status === 'rejected' || !c.scannedTeamId) continue
@@ -108,8 +116,10 @@ async function checkBlueDistinctTeamRule(
       if (otherTeam) usedColours.add(otherTeam.colour)
     }
     if (usedColours.size < TOTAL_COLOURS && usedColours.has(scannedTeam.colour)) {
+      const usedNames = [...usedColours].map((c) => COLOUR_DISPLAY[c] ?? c).join(', ')
+      const remainingNames = ALL_COLOURS.filter((c) => !usedColours.has(c)).map((c) => COLOUR_DISPLAY[c] ?? c).join(', ')
       throw new Error(
-        `You've already scanned a ${scannedTeam.colour} team for another blue square. Try scanning a team with a different colour — you've used ${usedColours.size} of ${TOTAL_COLOURS} colours so far.`,
+        `You've already scanned a ${COLOUR_DISPLAY[scannedTeam.colour] ?? scannedTeam.colour} team. Colours used so far: ${usedNames}. You still need: ${remainingNames}.`,
       )
     }
   }
@@ -173,7 +183,7 @@ export const submitScanTeam = mutation({
       await assertEligible(ctx, args.scannedTeamId, args.squareId)
     }
     const existing = await findExisting(ctx, args.teamId, args.squareId)
-    await assertScannedTeamApproachLimit(ctx, args.scannedTeamId, existing?._id)
+    await assertScannedTeamApproachLimit(ctx, args.scannedTeamId, square.category, existing?._id)
     await upsert(ctx, {
       teamId: args.teamId,
       squareId: args.squareId,
@@ -202,7 +212,7 @@ export const submitScanTeamWithAnswer = mutation({
       await checkBlueDistinctTeamRule(ctx, args.teamId, args.squareId, args.scannedTeamId)
     }
     const existing = await findExisting(ctx, args.teamId, args.squareId)
-    await assertScannedTeamApproachLimit(ctx, args.scannedTeamId, existing?._id)
+    await assertScannedTeamApproachLimit(ctx, args.scannedTeamId, square.category, existing?._id)
     await upsert(ctx, {
       teamId: args.teamId,
       squareId: args.squareId,
@@ -221,12 +231,12 @@ export const submitPhotoWithTeam = mutation({
     photoStorageId: v.id('_storage'),
   },
   handler: async (ctx: MutationCtx, args) => {
-    await assertCanSubmit(ctx, args.teamId, args.squareId)
+    const square = await assertCanSubmit(ctx, args.teamId, args.squareId)
     if (args.scannedTeamId === args.teamId) {
       throw new Error("This square needs a photo with another team — you can't scan yourself here.")
     }
     const existing = await findExisting(ctx, args.teamId, args.squareId)
-    await assertScannedTeamApproachLimit(ctx, args.scannedTeamId, existing?._id)
+    await assertScannedTeamApproachLimit(ctx, args.scannedTeamId, square.category, existing?._id)
     if (existing) await deleteExistingPhotos(ctx, existing._id)
     const id = await upsert(ctx, {
       teamId: args.teamId,
