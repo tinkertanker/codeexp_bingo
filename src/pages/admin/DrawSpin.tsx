@@ -163,7 +163,6 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
       <div className="flex items-center gap-3 flex-wrap">
         <button
           onClick={async () => {
-            setRevealedWinners([])
             setDrawInProgress(true)
             await drawOne()
             setDrawInProgress(false)
