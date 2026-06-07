@@ -102,15 +102,17 @@ export const bulkUpdateMetadata = mutation({
         missing.push(item.name)
         continue
       }
-      await ctx.db.patch(team._id, {
-        teamNumber: cleanOptional(item.teamNumber),
-        appName: cleanOptional(item.appName),
-        description: cleanOptional(item.description),
-        pitchUrl: cleanOptional(item.pitchUrl),
-        slideDeckUrl: cleanOptional(item.slideDeckUrl),
-        wireframeUrl: cleanOptional(item.wireframeUrl),
-        architectureUrl: cleanOptional(item.architectureUrl),
-      })
+      const patch: Record<string, string | undefined> = {}
+      if (item.teamNumber !== undefined) patch.teamNumber = cleanOptional(item.teamNumber)
+      if (item.appName !== undefined) patch.appName = cleanOptional(item.appName)
+      if (item.description !== undefined) patch.description = cleanOptional(item.description)
+      if (item.pitchUrl !== undefined) patch.pitchUrl = cleanOptional(item.pitchUrl)
+      if (item.slideDeckUrl !== undefined) patch.slideDeckUrl = cleanOptional(item.slideDeckUrl)
+      if (item.wireframeUrl !== undefined) patch.wireframeUrl = cleanOptional(item.wireframeUrl)
+      if (item.architectureUrl !== undefined) patch.architectureUrl = cleanOptional(item.architectureUrl)
+      if (Object.keys(patch).length > 0) {
+        await ctx.db.patch(team._id, patch)
+      }
       updated++
     }
 
