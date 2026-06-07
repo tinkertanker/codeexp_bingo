@@ -148,10 +148,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
             <div className="bh-display text-6xl font-extrabold text-bh-lime drop-shadow-[0_0_24px_rgba(166,251,0,0.85)]">★ {tickName} ★</div>
           )}
           {phase === 'done' && (
-            <div className="space-y-2">
-              <div className="bh-display text-4xl font-extrabold text-bh-lime">All winners drawn!</div>
-              <div className="text-sm text-bh-dim">Check the public live screen.</div>
-            </div>
+            <div className="bh-display text-4xl font-extrabold text-bh-lime">Congratulations!</div>
           )}
           {phase === 'error' && <div className="text-bh-magenta">{error}</div>}
           {phase === 'idle' && existingWinners.length > 0 && (
