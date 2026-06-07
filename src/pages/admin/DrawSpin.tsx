@@ -52,7 +52,6 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
   const [tickName, setTickName] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [drawInProgress, setDrawInProgress] = useState(false)
-  const [drawCount, setDrawCount] = useState(3)
 
   if (bundle === undefined) {
     return <p className="text-sm text-bh-dim bh-display">Loading…</p>
@@ -99,21 +98,6 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
     await sleep(REVEAL_HOLD_MS)
     setPhase('done')
     return true
-  }
-
-  const startDraw = async () => {
-    setError(null)
-    if (eligible.length < drawCount) {
-      setError(`Only ${eligible.length} eligible team(s). Need at least ${drawCount} with one or more entries.`)
-      return
-    }
-    setRevealedWinners([])
-    setDrawInProgress(true)
-    for (let i = 0; i < drawCount; i++) {
-      const ok = await drawOne()
-      if (!ok) break
-    }
-    setDrawInProgress(false)
   }
 
   const reset = async () => {
@@ -189,23 +173,7 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
         >
           Draw 1 winner
         </button>
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            min={1}
-            max={10}
-            value={drawCount}
-            onChange={(e) => setDrawCount(Math.max(1, Math.min(10, Number(e.target.value))))}
-            className="w-14 rounded-md ring-1 ring-bh-line bg-black/40 px-2 py-1.5 text-sm text-white text-center focus:ring-bh-lime focus:outline-none"
-          />
-          <button
-            onClick={startDraw}
-            disabled={phase === 'spinning' || phase === 'revealed' || drawInProgress}
-            className="bh-btn-ghost text-sm disabled:opacity-50"
-          >
-            Draw {drawCount} in a row
-          </button>
-        </div>
+
         {existingWinners.length > 0 && phase !== 'spinning' && phase !== 'revealed' && (
           <button onClick={reset} className="bh-display px-3 py-2 rounded-md ring-1 ring-bh-line text-bh-dim hover:text-bh-magenta hover:ring-bh-magenta/40 text-xs tracking-wider">
             Clear winners
