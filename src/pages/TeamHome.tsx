@@ -141,7 +141,7 @@ function InstructionsModal({ onClose }: { onClose: () => void }) {
               <li>Teams are divided into 5 colour groups</li>
               <li>Find a team from a different colour group for each mission</li>
               <li>The approached team presents their QR code for you to scan</li>
-              <li>Each team can be approached a maximum of <strong className="text-white">10 times per square colour</strong></li>
+              <li>Each team can be approached a maximum of <strong className="text-white">10 times for blue squares</strong></li>
             </ul>
           </section>
           <section>

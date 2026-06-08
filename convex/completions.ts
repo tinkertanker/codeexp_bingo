@@ -48,6 +48,9 @@ async function assertScannedTeamApproachLimit(
   squareCategory: 'orange' | 'blue' | 'grey' | 'wild',
   excludeCompletionId?: Id<'squareCompletions'>,
 ): Promise<void> {
+  // Only blue squares have a per-team approach limit; red/orange are unlimited.
+  if (squareCategory !== 'blue') return
+
   const completions = await ctx.db
     .query('squareCompletions')
     .withIndex('by_scanned_team_id', (q) => q.eq('scannedTeamId', scannedTeamId))
@@ -58,13 +61,12 @@ async function assertScannedTeamApproachLimit(
   for (const completion of completions) {
     if (completion._id === excludeCompletionId) continue
     const sq = await ctx.db.get(completion.squareId)
-    if (!sq || sq.category !== squareCategory) continue
+    if (!sq || sq.category !== 'blue') continue
     counted++
     if (counted >= APPROACH_LIMIT_PER_TEAM) {
       const scannedTeam = await ctx.db.get(scannedTeamId)
-      const label = squareCategory === 'orange' ? 'red' : squareCategory
       throw new Error(
-        `"${scannedTeam?.name ?? 'This team'}" has been approached the maximum ${APPROACH_LIMIT_PER_TEAM} times for ${label} squares already. Try finding a different team to scan!`,
+        `"${scannedTeam?.name ?? 'This team'}" has been approached the maximum ${APPROACH_LIMIT_PER_TEAM} times for blue squares already. Try finding a different team to scan!`,
       )
     }
   }
