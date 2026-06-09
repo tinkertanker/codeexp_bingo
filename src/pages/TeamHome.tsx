@@ -125,7 +125,7 @@ function InstructionsModal({ onClose }: { onClose: () => void }) {
               <li>Complete a task to earn the square</li>
               <li>Each line complete = 1 lucky draw opportunity</li>
               <li>Some tasks will be released throughout the event</li>
-              <li>Deadline: <strong className="text-white">15:20, 11/06/2026</strong></li>
+              <li>Deadline: <strong className="text-white">15:30, 11/06/2026</strong></li>
             </ul>
           </section>
           <section>
