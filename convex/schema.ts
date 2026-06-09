@@ -48,6 +48,7 @@ export const mentorActionKind = v.union(
   v.literal('set_problem_statement'),
   v.literal('update_team_metadata'),
   v.literal('schedule_square'),
+  v.literal('edit_square_content'),
   v.literal('approve_code_submission'),
   v.literal('reject_code_submission'),
 )
