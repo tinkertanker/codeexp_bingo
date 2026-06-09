@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import QRCode from 'qrcode'
 import { Link, useParams } from 'react-router-dom'
 import { useTeam } from '../hooks/useTeam'
-import { teamMagicLink } from '../lib/qr'
+import { teamScanLink } from '../lib/qr'
 
 export default function TeamQR() {
   const { token } = useParams()
@@ -11,7 +11,7 @@ export default function TeamQR() {
 
   useEffect(() => {
     if (status !== 'ok' || !data || !canvasRef.current) return
-    QRCode.toCanvas(canvasRef.current, teamMagicLink(data.team.token), {
+    QRCode.toCanvas(canvasRef.current, teamScanLink(data.team.token), {
       width: 320,
       margin: 1,
       color: { dark: '#000000', light: '#A6FB00' },
@@ -46,8 +46,7 @@ export default function TeamQR() {
         <canvas ref={canvasRef} className="block rounded" />
       </div>
       <p className="text-xs text-bh-dim mt-4 text-center max-w-xs">
-        Show this QR to other teams to let them complete bingo squares with your team. Scanning it on a fresh device
-        also logs you in here.
+        Show this QR to other teams so they can scan it in the bingo app to complete squares.
       </p>
       <Link to={`/t/${data.team.token}`} className="bh-btn-primary mt-6 text-sm">
         Back to bingo card

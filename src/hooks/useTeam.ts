@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { saveTeamToken } from '../lib/token'
+import { loadTeamToken, saveTeamToken } from '../lib/token'
 import type { BingoSquare, GameState, SquareCompletion, Team, TeamEligibility } from '../lib/types'
 
 export type TeamData = {
@@ -35,9 +35,13 @@ export function useTeam(token: string | undefined) {
     team ? { teamId: team._id } : 'skip',
   )
 
-  // Persist the token for return-visits whenever we successfully resolve a team.
+  // Persist the token for return-visits — but only if no *different* team is
+  // already stored.  This prevents a phone-camera scan of another team's QR
+  // from silently hijacking the device's session.
   useEffect(() => {
-    if (team && token) saveTeamToken(token)
+    if (!team || !token) return
+    const existing = loadTeamToken()
+    if (!existing || existing === token) saveTeamToken(token)
   }, [team, token])
 
   let status: Status = 'loading'
