@@ -102,7 +102,8 @@ export const check = action({
       /* ignore */
     }
     if (res.status === 404) return { ok: false, accessible: false, reason: await complain('File not found — check the link.') }
-    if (!res.ok) return { ok: false, accessible: false, reason: await complain(`Google returned ${res.status}. Please check that the link is publicly accessible (set sharing to "Anyone with the link").`) }
+    if (res.status === 401) return { ok: false, accessible: false, reason: await complain('Google returned a 401 error. Please check that the link is publicly accessible (set sharing to "Anyone with the link").') }
+    if (!res.ok) return { ok: false, accessible: false, reason: await complain(`Google returned ${res.status}.`) }
 
     const body = await res.text()
     const needsAccess = /you need access|request access|sign in to continue|you'll need permission/i.test(body)
