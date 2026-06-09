@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Splash from './pages/Splash'
 import TeamHome from './pages/TeamHome'
 
+const ScanLanding = lazy(() => import('./pages/ScanLanding'))
 const SquareDetail = lazy(() => import('./pages/SquareDetail'))
 const TeamQR = lazy(() => import('./pages/TeamQR'))
 const ProjectSubmit = lazy(() => import('./pages/ProjectSubmit'))
@@ -33,6 +34,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Splash />} />
           <Route path="/t/:token" element={<TeamHome />} />
+          <Route path="/scan/:token" element={<ScanLanding />} />
           <Route path="/t/:token/square/:position" element={<SquareDetail />} />
           <Route path="/t/:token/qr" element={<TeamQR />} />
           <Route path="/t/:token/project" element={<ProjectSubmit />} />

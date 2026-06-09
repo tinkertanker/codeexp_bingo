@@ -8,12 +8,32 @@ import { useTeam } from '../hooks/useTeam'
 import { countCompletedLines } from '../lib/lines'
 import { effectivelyFilledFor } from '../lib/standings'
 import { effectiveCategory } from '../lib/squares'
-import { clearTeamToken } from '../lib/token'
+import { clearTeamToken, loadTeamToken } from '../lib/token'
 
 export default function TeamHome() {
   const { token } = useParams()
   const { status, data } = useTeam(token)
   const [showInstructions, setShowInstructions] = useState(false)
+
+  const storedToken = loadTeamToken()
+  const isWrongTeam = !!(storedToken && token && storedToken !== token)
+
+  if (isWrongTeam) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6">
+        <div className="max-w-md w-full bh-card p-8 text-center">
+          <h1 className="bh-display text-xl font-bold text-bh-magenta mb-3">Wrong team link</h1>
+          <p className="text-sm text-bh-dim mb-6">
+            This link belongs to another team. To complete a bingo square, go back to
+            your own team page and use the <strong className="text-white">in-app QR scanner</strong>.
+          </p>
+          <a href={`/t/${storedToken}`} className="bh-btn-primary w-full text-sm">
+            Back to my team
+          </a>
+        </div>
+      </div>
+    )
+  }
 
   if (status === 'loading') {
     return <div className="p-6 text-bh-dim bh-display text-xs">Loading…</div>
