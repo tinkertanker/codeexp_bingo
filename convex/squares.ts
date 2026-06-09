@@ -58,3 +58,44 @@ export const adminUpdateSchedule = mutation({
     })
   },
 })
+
+// Admin editor for a square's display text. Patches title/description by position
+// without touching release/lock state (unlike a full re-seed via seedAll).
+export const adminUpdateContent = mutation({
+  args: {
+    passcode: v.string(),
+    mentorName: v.string(),
+    position: v.number(),
+    title: v.optional(v.string()),
+    description: v.optional(v.string()),
+  },
+  handler: async (ctx: MutationCtx, args) => {
+    assertAdmin(args.passcode)
+    if (!args.mentorName.trim()) throw new Error('mentorName is required for the audit trail.')
+    const square = await ctx.db
+      .query('bingoSquares')
+      .withIndex('by_position', (q) => q.eq('position', args.position))
+      .unique()
+    if (!square) throw new Error('Square not found.')
+
+    const patch: Record<string, string> = {}
+    if (args.title !== undefined) {
+      const title = args.title.trim()
+      if (!title) throw new Error('Title cannot be empty.')
+      patch.title = title
+    }
+    if (args.description !== undefined) {
+      const description = args.description.trim()
+      if (!description) throw new Error('Description cannot be empty.')
+      patch.description = description
+    }
+
+    if (Object.keys(patch).length === 0) return
+    await ctx.db.patch(square._id, patch)
+    await logMentorAction(ctx, {
+      mentorName: args.mentorName,
+      action: 'edit_square_content',
+      metadata: { position: args.position, patch },
+    })
+  },
+})
