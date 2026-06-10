@@ -145,6 +145,32 @@ export const setCategory = mutation({
   },
 })
 
+// Rename a team (e.g. fix a typo in the seeded list).
+export const rename = mutation({
+  args: {
+    passcode: v.string(),
+    mentorName: v.string(),
+    teamId: v.id('teams'),
+    name: v.string(),
+  },
+  handler: async (ctx: MutationCtx, args) => {
+    assertAdmin(args.passcode)
+    if (!args.mentorName.trim()) throw new Error('mentorName is required for the audit trail.')
+    const name = args.name.trim()
+    if (!name) throw new Error('Team name cannot be empty.')
+    const team = await ctx.db.get(args.teamId)
+    if (!team) throw new Error('Team not found.')
+    const previous = team.name
+    await ctx.db.patch(args.teamId, { name })
+    await logMentorAction(ctx, {
+      mentorName: args.mentorName,
+      action: 'rename_team',
+      metadata: { teamId: args.teamId, previous, name },
+    })
+    return { previous, name }
+  },
+})
+
 // Assign / change a team's DSTA problem statement (empty string clears it).
 export const setProblemStatement = mutation({
   args: {
