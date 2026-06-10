@@ -53,6 +53,7 @@ export const mentorActionKind = v.union(
   v.literal('reject_code_submission'),
   v.literal('replace_photo'),
   v.literal('rename_team'),
+  v.literal('set_ai_accessibility'),
 )
 
 export default defineSchema({

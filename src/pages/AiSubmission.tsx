@@ -67,11 +67,23 @@ export default function AiSubmission() {
     setSubmitting(true)
     setError(null)
     try {
+      // Auto-run the accessibility check if the team didn't click "Check" first,
+      // so the submission isn't saved as Unverified just for skipping the button.
+      // A failed check must never block saving — the entry still gets recorded.
+      let result = check
+      if (!result) {
+        try {
+          result = await checkLink({ url: driveUrl.trim() })
+          setCheck(result)
+        } catch {
+          /* keep result null → saved as Unverified */
+        }
+      }
       await save({
         teamId: data.team._id,
         driveUrl: driveUrl.trim(),
-        accessible: check?.ok ?? undefined,
-        checkResponse: check ?? undefined,
+        accessible: result?.ok ?? undefined,
+        checkResponse: result ?? undefined,
       })
       setSavedAt(new Date())
     } catch (e) {
