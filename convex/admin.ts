@@ -115,7 +115,7 @@ export const replaceCompletionPhoto = mutation({
     }
     await logMentorAction(ctx, {
       mentorName: args.mentorName,
-      action: 'approve',
+      action: 'replace_photo',
       completionId: args.completionId,
       metadata: { reason: 'Replaced unviewable photo file' },
     })
