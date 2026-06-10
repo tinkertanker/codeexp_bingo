@@ -6,9 +6,11 @@ export type PhotoWallProps = {
   photos: PhotoWithUrl[]
   teamsById: Map<TeamId, Team>
   cap?: number
+  /** Minimum tile width in px; the grid auto-fills as many columns as fit. */
+  minTile?: number
 }
 
-export default function PhotoWall({ photos, teamsById, cap = 18 }: PhotoWallProps) {
+export default function PhotoWall({ photos, teamsById, cap = 18, minTile = 180 }: PhotoWallProps) {
   const recent = photos.slice(0, cap)
   if (recent.length === 0) {
     return (
@@ -18,7 +20,10 @@ export default function PhotoWall({ photos, teamsById, cap = 18 }: PhotoWallProp
     )
   }
   return (
-    <div className="grid grid-cols-3 gap-3 h-full auto-rows-fr">
+    <div
+      className="grid gap-3 content-start"
+      style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${minTile}px, 1fr))` }}
+    >
       {recent.map((p) => {
         const team = teamsById.get(p.teamId)
         return (
