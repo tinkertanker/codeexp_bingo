@@ -51,6 +51,7 @@ export const mentorActionKind = v.union(
   v.literal('edit_square_content'),
   v.literal('approve_code_submission'),
   v.literal('reject_code_submission'),
+  v.literal('replace_photo'),
 )
 
 export default defineSchema({
