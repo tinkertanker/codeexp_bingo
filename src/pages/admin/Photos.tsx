@@ -36,6 +36,7 @@ function Body({ mentorName, passcode }: { mentorName: string; passcode: string }
         const item = withUrls[i]
         setDownloading(`Fetching ${i + 1}/${withUrls.length}…`)
         const resp = await fetch(item.photoUrl as string)
+        if (!resp.ok) throw new Error(`Failed to fetch photo ${i + 1}: HTTP ${resp.status}`)
         const blob = await resp.blob()
         const name = `${slug(item.team?.name)}__${slug(item.square?.title)}__${item.completion._id}.${extForType(blob.type)}`
         zip.file(name, blob)

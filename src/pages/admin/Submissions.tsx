@@ -18,10 +18,32 @@ function Body({ mentorName, passcode }: { mentorName: string; passcode: string }
   const checkLink = useAction(api.aiCheck.check)
   const setAiAccessible = useMutation(api.aiSubmissions.setAccessibility)
   const [busy, setBusy] = useState<string | null>(null)
+  const [zipBusy, setZipBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   if (codeSubs === undefined || aiSubs === undefined) {
     return <p className="text-sm text-bh-dim bh-display">Loading submissions…</p>
+  }
+
+  const downloadZip = async (id: string, url: string, filename: string | undefined) => {
+    setZipBusy(id)
+    setError(null)
+    try {
+      const resp = await fetch(url)
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+      const blob = await resp.blob()
+      const objUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = objUrl
+      a.download = filename ?? 'submission.zip'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(objUrl)
+    } catch (e) {
+      setError(friendlyError(e, 'ZIP download failed.'))
+    }
+    setZipBusy(null)
   }
 
   const onApprove = async (id: (typeof codeSubs)[number]['_id']) => {
@@ -104,13 +126,13 @@ function Body({ mentorName, passcode }: { mentorName: string; passcode: string }
                     </span>
                   )}
                   {s.zipUrl && (
-                    <a
-                      href={s.zipUrl}
-                      download={s.zipFilename ?? 'submission.zip'}
-                      className="ml-2 text-[0.6rem] text-bh-cyan underline"
+                    <button
+                      onClick={() => downloadZip(s._id, s.zipUrl as string, s.zipFilename)}
+                      disabled={zipBusy === s._id}
+                      className="ml-2 text-[0.6rem] text-bh-cyan underline disabled:opacity-50"
                     >
-                      ⬇ {s.zipFilename ?? 'Download ZIP'}
-                    </a>
+                      {zipBusy === s._id ? 'Downloading…' : `⬇ ${s.zipFilename ?? 'Download ZIP'}`}
+                    </button>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
