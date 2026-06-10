@@ -103,6 +103,15 @@ function Body({ mentorName, passcode }: { mentorName: string; passcode: string }
                       {s.zipClean ? 'ZIP clean' : 'ZIP unverified'}
                     </span>
                   )}
+                  {s.zipUrl && (
+                    <a
+                      href={s.zipUrl}
+                      download={s.zipFilename ?? 'submission.zip'}
+                      className="ml-2 text-[0.6rem] text-bh-cyan underline"
+                    >
+                      ⬇ {s.zipFilename ?? 'Download ZIP'}
+                    </a>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   {s.approvalStatus === 'approved' ? (

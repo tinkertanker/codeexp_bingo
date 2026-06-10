@@ -22,7 +22,13 @@ export const listAll = query({
     const subs = await ctx.db.query('codeSubmissions').collect()
     const teams = await ctx.db.query('teams').collect()
     const teamMap = new Map(teams.map((t) => [t._id, t]))
-    return subs.map((s) => ({ ...s, team: teamMap.get(s.teamId) ?? null }))
+    return await Promise.all(
+      subs.map(async (s) => ({
+        ...s,
+        team: teamMap.get(s.teamId) ?? null,
+        zipUrl: s.zipStorageId ? await ctx.storage.getUrl(s.zipStorageId) : null,
+      })),
+    )
   },
 })
 
