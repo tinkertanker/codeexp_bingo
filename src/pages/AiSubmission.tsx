@@ -73,8 +73,13 @@ export default function AiSubmission() {
       let result = check
       if (!result) {
         try {
-          result = await checkLink({ url: driveUrl.trim() })
-          setCheck(result)
+          const r = await checkLink({ url: driveUrl.trim() })
+          // Only surface a *successful* auto-check in the UI. Showing a failed
+          // one here would trip the "fix before saving" guard + disable the
+          // button right as the save succeeds (contradictory state). The
+          // accessible:false flag is still recorded via `result` below.
+          if (r.ok) setCheck(r)
+          result = r
         } catch {
           /* keep result null → saved as Unverified */
         }
