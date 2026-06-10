@@ -172,7 +172,7 @@ function ScoreboardView() {
             {activeTab === 'bingo' ? (
               <Leaderboard standings={standings} highlightTeamIds={winnerIds} onTeamClick={setSelectedStanding} />
             ) : activeTab === 'photos' ? (
-              <PhotoWall photos={bundle.photos} teamsById={teamsById} cap={36} />
+              <PhotoWall photos={bundle.photos} teamsById={teamsById} cap={36} minTile={200} />
             ) : groupByMission ? (
               <div className="space-y-4">
                 {groups.map((g) => (
@@ -193,8 +193,8 @@ function ScoreboardView() {
         {activeTab === 'overview' && (
           <section className="p-6 flex flex-col min-h-0">
             <h2 className="bh-display text-2xl font-bold mb-3 text-white">Live photo wall</h2>
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <PhotoWall photos={bundle.photos} teamsById={teamsById} cap={18} />
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <PhotoWall photos={bundle.photos} teamsById={teamsById} cap={18} minTile={150} />
             </div>
           </section>
         )}
