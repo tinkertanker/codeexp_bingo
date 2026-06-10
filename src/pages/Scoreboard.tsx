@@ -164,7 +164,7 @@ function ScoreboardView() {
 
           {activeTab === 'bingo' && (
             <div className="text-xs text-bh-dim mb-3 bh-display tracking-wider">
-              <span className="text-bh-lime">S</span> = squares · <span className="text-bh-lime">L</span> = lines · <span className="text-white">TOTAL</span> = lucky-draw entries (lines + clean-ZIP bonus)
+              <span className="text-bh-lime">S</span> = squares · <span className="text-bh-lime">L</span> = lines · <span className="text-white">TOTAL</span> = lucky-draw entries (lines + ZIP / GitHub / eligibility bonuses)
             </div>
           )}
 
