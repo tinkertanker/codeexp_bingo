@@ -100,13 +100,16 @@ export default function TeamHome() {
           </div>
         )}
         {data.completions
-          .filter((c) => c.status === 'rejected' && c.photoStorageId)
+          .filter((c) => c.status === 'rejected')
           .map((c) => {
             const sq = data.squares.find((s) => s._id === c.squareId)
             return (
               <div key={c._id} className="mt-3 p-3 rounded-md ring-1 ring-red-500/40 bg-red-500/10 text-red-400 text-sm">
-                <strong className="bh-display tracking-wider">Photo rejected{sq ? ` — ${sq.title}` : ''}.</strong>{' '}
-                Please re-submit your photo. Talk to your mentor for details.
+                <strong className="bh-display tracking-wider">Submission rejected{sq ? ` — ${sq.title}` : ''}.</strong>{' '}
+                {c.rejectedReason
+                  ? <>Reason: {c.rejectedReason}</>
+                  : <>Talk to your mentor for details.</>}{' '}
+                You can re-submit from the square.
               </div>
             )
           })
