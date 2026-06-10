@@ -86,6 +86,42 @@ export const rejectCompletion = mutation({
   },
 })
 
+// Repairs a photo submission whose stored file can't be displayed (e.g. a raw
+// HEIC that failed in-browser conversion). Re-points the completion (and its
+// photo-wall row) at a freshly uploaded, web-displayable file and deletes the
+// old blob.
+export const replaceCompletionPhoto = mutation({
+  args: {
+    passcode: v.string(),
+    mentorName: v.string(),
+    completionId: v.id('squareCompletions'),
+    storageId: v.id('_storage'),
+  },
+  handler: async (ctx: MutationCtx, args) => {
+    assertAdmin(args.passcode)
+    if (!args.mentorName.trim()) throw new Error('mentorName is required for the audit trail.')
+    const completion = await ctx.db.get(args.completionId)
+    if (!completion) throw new Error('Completion not found.')
+    const oldStorageId = completion.photoStorageId
+    await ctx.db.patch(args.completionId, { photoStorageId: args.storageId })
+    const photos = await ctx.db.query('photos').collect()
+    for (const p of photos) {
+      if (p.completionId === args.completionId) {
+        await ctx.db.patch(p._id, { storageId: args.storageId })
+      }
+    }
+    if (oldStorageId && oldStorageId !== args.storageId) {
+      await ctx.storage.delete(oldStorageId)
+    }
+    await logMentorAction(ctx, {
+      mentorName: args.mentorName,
+      action: 'approve',
+      completionId: args.completionId,
+      metadata: { reason: 'Replaced unviewable photo file' },
+    })
+  },
+})
+
 export const rejectApprovedPhoto = mutation({
   args: {
     passcode: v.string(),

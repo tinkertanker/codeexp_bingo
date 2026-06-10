@@ -2,8 +2,10 @@
 //
 // iPhones default to HEIC, which browsers (other than Safari) can't decode, so
 // such uploads show as broken images on the admin queue, photo wall, etc. Here
-// we convert HEIC -> JPEG in the browser (via heic2any / libheif, loaded lazily
-// only when needed) and downscale very large photos to keep uploads fast.
+// we convert HEIC -> JPEG in the browser (via heic-to / a recent libheif-wasm,
+// loaded lazily only when needed) and downscale very large photos to keep
+// uploads fast. heic-to is used over heic2any because its newer libheif decodes
+// Apple HDR "gain-map" HEICs (brand `tmap`) that the older build chokes on.
 
 const HEIC_MIME_TYPES = ['image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence']
 
@@ -27,9 +29,8 @@ export async function prepareImageForUpload(file: File): Promise<File> {
 
   if (isHeic(file)) {
     try {
-      const { default: heic2any } = await import('heic2any')
-      const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: JPEG_QUALITY })
-      const blob = Array.isArray(converted) ? converted[0] : converted
+      const { heicTo } = await import('heic-to')
+      const blob = await heicTo({ blob: file, type: 'image/jpeg', quality: JPEG_QUALITY })
       working = new File([blob], withJpgName(file.name), { type: 'image/jpeg' })
     } catch {
       // Conversion failed — keep the original so the submission still goes through.
