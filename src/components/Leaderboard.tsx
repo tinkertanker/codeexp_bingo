@@ -50,6 +50,7 @@ export default function Leaderboard({ standings, highlightTeamIds, rowsPerColumn
                   <span className="flex-1 truncate text-sm font-medium">{s.team.name}</span>
                   {!hideStats && (
                     <>
+                      <span className={['text-xs tabular-nums', highlighted ? 'text-black/70' : 'text-bh-dim'].join(' ')}>{s.squares}S</span>
                       <span className={['text-xs tabular-nums', highlighted ? 'text-black/70' : 'text-bh-dim'].join(' ')}>{s.lines}L</span>
                       <span className="bh-display text-sm font-extrabold tabular-nums">{s.entries}</span>
                     </>

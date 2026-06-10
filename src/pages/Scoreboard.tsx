@@ -164,7 +164,7 @@ function ScoreboardView() {
 
           {activeTab === 'bingo' && (
             <div className="text-xs text-bh-dim mb-3 bh-display tracking-wider">
-              <span className="text-bh-lime">L</span> = lines · <span className="text-white">TOTAL</span> = lucky-draw entries (lines + clean-ZIP bonus)
+              <span className="text-bh-lime">S</span> = squares · <span className="text-bh-lime">L</span> = lines · <span className="text-white">TOTAL</span> = lucky-draw entries (lines + clean-ZIP bonus)
             </div>
           )}
 
@@ -275,6 +275,7 @@ function TeamAssetsModal({ standing, onClose }: { standing: Standing; onClose: (
         </div>
         {team.description && <p className="mt-4 text-sm text-white/80">{team.description}</p>}
         <div className="mt-4 grid grid-cols-2 gap-2">
+          <Stat label="Squares" value={standing.squares} />
           <Stat label="Lines" value={standing.lines} />
           <Stat label="Entries" value={standing.entries} />
         </div>

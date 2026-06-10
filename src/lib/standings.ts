@@ -5,6 +5,7 @@ import type { BingoSquare, CodeSubmission, SquareCompletion, Team, TeamId } from
 export type Standing = {
   team: Team
   lines: number
+  squares: number
   bonus: number
   githubBonus: number
   eligibilityBonus: number
@@ -56,8 +57,10 @@ export function computeStandings(
     const bonus = sub?.zipClean === true ? 1 : 0
     const githubBonus = sub?.approvalStatus === 'approved' ? 1 : 0
     const eligibilityBonus = eligByTeam.get(team._id) ?? 0
-    return { team, lines, bonus, githubBonus, eligibilityBonus, entries: lines + bonus + githubBonus + eligibilityBonus }
+    return { team, lines, squares: filled.size, bonus, githubBonus, eligibilityBonus, entries: lines + bonus + githubBonus + eligibilityBonus }
   })
-  standings.sort((a, b) => b.entries - a.entries || b.lines - a.lines || a.team.name.localeCompare(b.team.name))
+  standings.sort(
+    (a, b) => b.entries - a.entries || b.lines - a.lines || b.squares - a.squares || a.team.name.localeCompare(b.team.name),
+  )
   return standings
 }
