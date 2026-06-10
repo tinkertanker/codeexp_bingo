@@ -1,5 +1,7 @@
 import { v } from 'convex/values'
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
+import { assertAdmin } from './admin'
+import { logMentorAction } from './mentorActions'
 
 // Hard deadline for the "Innovative use of AI" submission: 10 Jun 2026, 18:00 Singapore time (UTC+8).
 // Mirrored client-side via the `config` query so the countdown and the server agree.
@@ -69,6 +71,36 @@ export const save = mutation({
       checkResponse: args.checkResponse,
       checkedAt: now,
       submittedAt: now,
+    })
+  },
+})
+
+// Admin override for the best-effort accessibility flag. The auto-check can
+// produce a false "Unverified" (e.g. a team submits without running the check),
+// so mentors can re-check or manually set the flag. Does NOT touch driveUrl or
+// submittedAt, so the original submission time is preserved.
+export const setAccessibility = mutation({
+  args: {
+    passcode: v.string(),
+    mentorName: v.string(),
+    submissionId: v.id('aiSubmissions'),
+    accessible: v.optional(v.boolean()),
+    checkResponse: v.optional(v.any()),
+  },
+  handler: async (ctx: MutationCtx, args) => {
+    assertAdmin(args.passcode)
+    if (!args.mentorName.trim()) throw new Error('mentorName is required for the audit trail.')
+    const sub = await ctx.db.get(args.submissionId)
+    if (!sub) throw new Error('Submission not found.')
+    await ctx.db.patch(args.submissionId, {
+      accessible: args.accessible,
+      checkedAt: Date.now(),
+      ...(args.checkResponse !== undefined ? { checkResponse: args.checkResponse } : {}),
+    })
+    await logMentorAction(ctx, {
+      mentorName: args.mentorName,
+      action: 'set_ai_accessibility',
+      metadata: { submissionId: args.submissionId, teamId: sub.teamId, accessible: args.accessible ?? null },
     })
   },
 })
