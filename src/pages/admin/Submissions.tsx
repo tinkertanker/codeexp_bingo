@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useMutation, useQuery } from 'convex/react'
+import { useAction, useMutation, useQuery } from 'convex/react'
 import AdminLayout from '../../components/AdminLayout'
 import { api } from '../../../convex/_generated/api'
 import { categoryLabel } from '../../lib/categories'
@@ -15,6 +15,8 @@ function Body({ mentorName, passcode }: { mentorName: string; passcode: string }
   const codeSubs = useQuery(api.codeSubmissions.listAll)
   const aiSubs = useQuery(api.aiSubmissions.listAll)
   const setApproval = useMutation(api.codeSubmissions.setApprovalStatus)
+  const checkLink = useAction(api.aiCheck.check)
+  const setAiAccessible = useMutation(api.aiSubmissions.setAccessibility)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -40,6 +42,29 @@ function Body({ mentorName, passcode }: { mentorName: string; passcode: string }
       await setApproval({ passcode, mentorName, submissionId: id, status: 'rejected' })
     } catch (e) {
       setError(friendlyError(e, 'Reject failed.'))
+    }
+    setBusy(null)
+  }
+
+  const onRecheckAi = async (id: (typeof aiSubs)[number]['_id'], url: string) => {
+    setBusy(id)
+    setError(null)
+    try {
+      const result = await checkLink({ url })
+      await setAiAccessible({ passcode, mentorName, submissionId: id, accessible: result.ok, checkResponse: result })
+    } catch (e) {
+      setError(friendlyError(e, 'Re-check failed.'))
+    }
+    setBusy(null)
+  }
+
+  const onOverrideAi = async (id: (typeof aiSubs)[number]['_id'], accessible: boolean | undefined) => {
+    setBusy(id)
+    setError(null)
+    try {
+      await setAiAccessible({ passcode, mentorName, submissionId: id, accessible })
+    } catch (e) {
+      setError(friendlyError(e, 'Update failed.'))
     }
     setBusy(null)
   }
@@ -145,6 +170,32 @@ function Body({ mentorName, passcode }: { mentorName: string; passcode: string }
                 >
                   {s.accessible === true ? 'ACCESSIBLE' : s.accessible === false ? 'CHECK FAILED' : 'UNVERIFIED'}
                 </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => onRecheckAi(s._id, s.driveUrl)}
+                    disabled={busy === s._id}
+                    className="bh-display px-2 py-1 rounded text-[0.6rem] tracking-wider ring-1 ring-bh-line text-bh-dim hover:bg-bh-panel disabled:opacity-40"
+                  >
+                    {busy === s._id ? '…' : 'Re-check'}
+                  </button>
+                  {s.accessible !== true ? (
+                    <button
+                      onClick={() => onOverrideAi(s._id, true)}
+                      disabled={busy === s._id}
+                      className="bh-display px-2 py-1 rounded text-[0.6rem] tracking-wider ring-1 ring-bh-lime/40 text-bh-lime hover:bg-bh-lime/10 disabled:opacity-40"
+                    >
+                      Mark accessible
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => onOverrideAi(s._id, undefined)}
+                      disabled={busy === s._id}
+                      className="bh-display px-2 py-1 rounded text-[0.6rem] tracking-wider ring-1 ring-bh-line text-bh-dim hover:bg-bh-panel disabled:opacity-40"
+                    >
+                      Mark unverified
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
