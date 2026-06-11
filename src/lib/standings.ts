@@ -60,7 +60,8 @@ export function computeStandings(
         bonus: 0,
         githubBonus: 0,
         eligibilityBonus: 0,
-        entries: team.manualChances,
+        // Match draw.ts: entries are floored/clamped so the displayed count equals the draw weight.
+        entries: Math.max(0, Math.floor(team.manualChances)),
       }
     }
     const filled = effectivelyFilledFor(team, squares, completions)

@@ -187,10 +187,15 @@ export const setManualStanding = mutation({
     if (!args.mentorName.trim()) throw new Error('mentorName is required for the audit trail.')
     const team = await ctx.db.get(args.teamId)
     if (!team) throw new Error('Team not found.')
+    // Normalise to non-negative integers so the displayed count == the draw weight.
+    const norm = (n: number | null) => (n === null ? undefined : Math.max(0, Math.floor(n)))
+    for (const n of [args.squares, args.lines, args.chances]) {
+      if (n !== null && !Number.isFinite(n)) throw new Error('Standing values must be finite numbers.')
+    }
     await ctx.db.patch(args.teamId, {
-      manualSquares: args.squares ?? undefined,
-      manualLines: args.lines ?? undefined,
-      manualChances: args.chances ?? undefined,
+      manualSquares: norm(args.squares),
+      manualLines: norm(args.lines),
+      manualChances: norm(args.chances),
     })
     await logMentorAction(ctx, {
       mentorName: args.mentorName,
