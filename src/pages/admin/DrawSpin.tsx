@@ -66,7 +66,6 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
     bundle.eligibilities,
   )
   const eligible = standings.filter((s) => s.entries > 0)
-  const totalEntries = eligible.reduce((sum, s) => sum + s.entries, 0)
   const existingWinners: DrawWinner[] = bundle.game?.drawWinners ?? []
 
   const drawOne = async (): Promise<boolean> => {
@@ -121,9 +120,6 @@ function Draw({ mentorName, passcode }: { mentorName: string; passcode: string }
           Draw winners one at a time, weighted by lucky-draw entries (one per completed bingo line + bonuses).
           Result is broadcast to the live screen immediately.
         </p>
-        <div className="mt-2 bh-display text-[0.7rem] tracking-widest text-bh-lime">
-          {eligible.length} ELIGIBLE TEAM(S) · {totalEntries} TOTAL ENTRIES
-        </div>
       </header>
 
       <div className="relative rounded-2xl p-8 text-center min-h-[14rem] flex flex-col items-center justify-center overflow-hidden bh-card">
