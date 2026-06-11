@@ -54,6 +54,7 @@ export const mentorActionKind = v.union(
   v.literal('replace_photo'),
   v.literal('rename_team'),
   v.literal('set_ai_accessibility'),
+  v.literal('set_manual_standing'),
 )
 
 export default defineSchema({
@@ -72,6 +73,12 @@ export default defineSchema({
     slideDeckUrl: v.optional(v.string()),
     wireframeUrl: v.optional(v.string()),
     architectureUrl: v.optional(v.string()),
+    // Manual standings override (used after the live-event data loss to restore a snapshot).
+    // When manualChances is set, the lucky draw and scoreboard use these values instead of
+    // computing from completions/submissions. Squares/lines are display-only.
+    manualSquares: v.optional(v.number()),
+    manualLines: v.optional(v.number()),
+    manualChances: v.optional(v.number()),
   })
     .index('by_token', ['token'])
     .index('by_colour', ['colour']),

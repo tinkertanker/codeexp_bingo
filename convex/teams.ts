@@ -171,6 +171,40 @@ export const rename = mutation({
   },
 })
 
+// Set (or clear) a team's manual standings override. Used to restore a saved
+// snapshot after progress data was lost. Pass null for any field to clear it.
+export const setManualStanding = mutation({
+  args: {
+    passcode: v.string(),
+    mentorName: v.string(),
+    teamId: v.id('teams'),
+    squares: v.union(v.number(), v.null()),
+    lines: v.union(v.number(), v.null()),
+    chances: v.union(v.number(), v.null()),
+  },
+  handler: async (ctx: MutationCtx, args) => {
+    assertAdmin(args.passcode)
+    if (!args.mentorName.trim()) throw new Error('mentorName is required for the audit trail.')
+    const team = await ctx.db.get(args.teamId)
+    if (!team) throw new Error('Team not found.')
+    // Normalise to non-negative integers so the displayed count == the draw weight.
+    const norm = (n: number | null) => (n === null ? undefined : Math.max(0, Math.floor(n)))
+    for (const n of [args.squares, args.lines, args.chances]) {
+      if (n !== null && !Number.isFinite(n)) throw new Error('Standing values must be finite numbers.')
+    }
+    await ctx.db.patch(args.teamId, {
+      manualSquares: norm(args.squares),
+      manualLines: norm(args.lines),
+      manualChances: norm(args.chances),
+    })
+    await logMentorAction(ctx, {
+      mentorName: args.mentorName,
+      action: 'set_manual_standing',
+      metadata: { teamId: args.teamId, squares: args.squares, lines: args.lines, chances: args.chances },
+    })
+  },
+})
+
 // Assign / change a team's DSTA problem statement (empty string clears it).
 export const setProblemStatement = mutation({
   args: {

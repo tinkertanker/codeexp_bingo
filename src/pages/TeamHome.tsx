@@ -63,12 +63,18 @@ export default function TeamHome() {
     return <div className="p-6 text-bh-magenta">Could not load team data.</div>
   }
 
+  const manualOverride = data.team.manualChances !== undefined
   const effectivelyFilled = effectivelyFilledFor(data.team, data.squares, data.completions)
-  const lines = countCompletedLines(effectivelyFilled)
+  // Manual override: show the restored snapshot values (matches scoreboard + draw).
+  const lines = manualOverride
+    ? (data.team.manualLines ?? 0)
+    : countCompletedLines(effectivelyFilled)
   const zipBonus = data.zipClean ? 1 : 0
   const githubBonus = data.githubApproved ? 1 : 0
   const eligibilityBonus = data.eligibilities.filter((e) => e.status === 'approved').length
-  const entries = lines + zipBonus + githubBonus + eligibilityBonus
+  const entries = manualOverride
+    ? Math.max(0, Math.floor(data.team.manualChances ?? 0))
+    : lines + zipBonus + githubBonus + eligibilityBonus
 
   return (
     <div className="min-h-screen p-3 sm:p-6">

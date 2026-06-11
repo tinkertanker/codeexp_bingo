@@ -51,6 +51,19 @@ export function computeStandings(
     }
   }
   const standings = teams.map<Standing>((team) => {
+    // Manual override: restores a saved standings snapshot after data loss.
+    if (team.manualChances !== undefined) {
+      return {
+        team,
+        lines: team.manualLines ?? 0,
+        squares: team.manualSquares ?? 0,
+        bonus: 0,
+        githubBonus: 0,
+        eligibilityBonus: 0,
+        // Match draw.ts: entries are floored/clamped so the displayed count equals the draw weight.
+        entries: Math.max(0, Math.floor(team.manualChances)),
+      }
+    }
     const filled = effectivelyFilledFor(team, squares, completions)
     const lines = countCompletedLines(filled)
     const sub = subByTeam.get(team._id)
