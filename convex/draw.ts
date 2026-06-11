@@ -42,26 +42,32 @@ async function buildEntryPool(
   const pool: Id<'teams'>[] = []
   let eligibleCount = 0
   for (const team of teams) {
-    const positions = new Set<number>()
-    for (const c of allCompletions) {
-      if (c.teamId !== team._id) continue
-      if (c.status !== 'approved') continue
-      const sq = squareById.get(c.squareId)
-      if (sq) positions.add(sq.position)
-    }
-    // (5) Auto-fill positions locked for the other category so cat2 isn't penalised.
-    const teamCat = effectiveCategory(team)
-    for (const sq of squares) {
-      if (sq.restrictToCategory && sq.restrictToCategory !== teamCat) {
-        positions.add(sq.position)
+    let entries: number
+    // Manual override: restores chances from a saved snapshot after data loss.
+    if (team.manualChances !== undefined) {
+      entries = Math.max(0, Math.floor(team.manualChances))
+    } else {
+      const positions = new Set<number>()
+      for (const c of allCompletions) {
+        if (c.teamId !== team._id) continue
+        if (c.status !== 'approved') continue
+        const sq = squareById.get(c.squareId)
+        if (sq) positions.add(sq.position)
       }
+      // (5) Auto-fill positions locked for the other category so cat2 isn't penalised.
+      const teamCat = effectiveCategory(team)
+      for (const sq of squares) {
+        if (sq.restrictToCategory && sq.restrictToCategory !== teamCat) {
+          positions.add(sq.position)
+        }
+      }
+      const lines = countLines(positions)
+      const sub = subByTeam.get(team._id)
+      const bonus = sub?.zipClean === true ? 1 : 0
+      const githubBonus = sub?.approvalStatus === 'approved' ? 1 : 0
+      const eligibilityBonus = eligByTeam.get(team._id) ?? 0
+      entries = Math.min(lines, NUM_LINES) + bonus + githubBonus + eligibilityBonus
     }
-    const lines = countLines(positions)
-    const sub = subByTeam.get(team._id)
-    const bonus = sub?.zipClean === true ? 1 : 0
-    const githubBonus = sub?.approvalStatus === 'approved' ? 1 : 0
-    const eligibilityBonus = eligByTeam.get(team._id) ?? 0
-    const entries = Math.min(lines, NUM_LINES) + bonus + githubBonus + eligibilityBonus
     if (entries > 0) eligibleCount += 1
     for (let i = 0; i < entries; i++) pool.push(team._id)
   }
