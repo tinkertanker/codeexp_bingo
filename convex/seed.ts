@@ -148,6 +148,9 @@ export const resetProgress = mutation({
     for (const a of actions) await ctx.db.delete(a._id)
     counts.mentorActions = actions.length
 
+    // NOTE: the `adminLogins` access trail is intentionally NOT deleted here, so a
+    // record of who accessed the admin panel survives a progress reset.
+
     // 8. Reset gameState (clear draw results, close game).
     const game = await ctx.db.query('gameState').first()
     if (game) {

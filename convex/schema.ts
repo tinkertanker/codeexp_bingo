@@ -128,6 +128,20 @@ export default defineSchema({
     metadata: v.optional(v.any()),
   }),
 
+  // Append-only record of every admin sign-in / first admin access per browser session.
+  // Captures name, time, best-effort IP and device. INTENTIONALLY NOT cleared by
+  // seed:resetProgress, so the access trail survives a progress reset.
+  adminLogins: defineTable({
+    name: v.string(),
+    at: v.number(),
+    userAgent: v.optional(v.string()),
+    ip: v.optional(v.string()),
+    path: v.optional(v.string()),
+    // 'login' = explicit sign-in via the passcode form; 'session' = first access in a
+    // browser session where creds were already saved.
+    event: v.optional(v.string()),
+  }).index('by_at', ['at']),
+
   codeSubmissions: defineTable({
     teamId: v.id('teams'),
     githubUrl: v.string(),
