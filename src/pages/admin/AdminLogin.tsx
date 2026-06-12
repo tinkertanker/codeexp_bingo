@@ -1,7 +1,10 @@
 import { useState } from 'react'
+import { useMutation } from 'convex/react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { api } from '../../../convex/_generated/api'
 import { checkPasscode } from '../../lib/admin'
 import { saveAdminCreds } from '../../lib/token'
+import { markAdminSessionLogged, postAdminLoginHttp } from '../../lib/adminLog'
 
 export default function AdminLogin() {
   const [name, setName] = useState('')
@@ -9,12 +12,22 @@ export default function AdminLogin() {
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
   const location = useLocation()
+  const recordFallback = useMutation(api.adminAccess.recordLogin)
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) return setError('Type your first name so we can audit your actions.')
-    if (!checkPasscode(passcode)) return setError('Incorrect passcode.')
-    saveAdminCreds(name.trim(), passcode.trim())
+    const cleanName = name.trim()
+    const cleanPass = passcode.trim()
+    if (!cleanName) return setError('Type your first name so we can audit your actions.')
+    if (!checkPasscode(cleanPass)) return setError('Incorrect passcode.')
+    saveAdminCreds(cleanName, cleanPass)
+    markAdminSessionLogged()
+    // Record the login (best-effort, with IP via the HTTP endpoint; mutation fallback otherwise).
+    void postAdminLoginHttp({ passcode: cleanPass, name: cleanName, path: '/admin', event: 'login' }).then(
+      (ok) => {
+        if (!ok) recordFallback({ passcode: cleanPass, name: cleanName, path: '/admin', event: 'login' }).catch(() => {})
+      },
+    )
     const from = (location.state as { from?: string } | null)?.from
     navigate(from && from.startsWith('/admin/') ? from : '/admin/queue', { replace: true })
   }

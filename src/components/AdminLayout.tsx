@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
+import { useMutation } from 'convex/react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { api } from '../../convex/_generated/api'
 import { isOrganiser, requireAdmin, type AdminCreds } from '../lib/admin'
 import { clearAdminCreds } from '../lib/token'
+import { adminSessionAlreadyLogged, markAdminSessionLogged, postAdminLoginHttp } from '../lib/adminLog'
 
 export type AdminLayoutProps = {
   children: (creds: AdminCreds) => React.ReactNode
@@ -11,6 +14,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const [creds, setCreds] = useState<AdminCreds | null | 'loading'>('loading')
+  const recordFallback = useMutation(api.adminAccess.recordLogin)
 
   useEffect(() => {
     const c = requireAdmin()
@@ -19,7 +23,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       return
     }
     setCreds(c)
-  }, [navigate, location.pathname])
+    // Capture the first admin access in this browser session even if creds were already
+    // saved (i.e. the login form was skipped). Once per session, not per page nav.
+    if (!adminSessionAlreadyLogged()) {
+      markAdminSessionLogged()
+      void postAdminLoginHttp({ passcode: c.passcode, name: c.name, path: location.pathname, event: 'session' }).then(
+        (ok) => {
+          if (!ok) recordFallback({ passcode: c.passcode, name: c.name, path: location.pathname, event: 'session' }).catch(() => {})
+        },
+      )
+    }
+  }, [navigate, location.pathname, recordFallback])
 
   if (creds === 'loading') return <div className="p-6 text-bh-dim bh-display text-xs">…</div>
   if (!creds) return null
@@ -41,6 +55,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <NavTab to="/admin/fanfavs" label="Fan favs" />
             <NavTab to="/admin/submissions" label="Submissions" />
             <NavTab to="/admin/photos" label="Photos" />
+            <NavTab to="/admin/access" label="Access log" />
             {organiser && <NavTab to="/admin/draw" label="Draw" />}
             {organiser && <NavTab to="/admin/round2" label="Round 2" />}
           </nav>
