@@ -29,7 +29,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       markAdminSessionLogged()
       void postAdminLoginHttp({ passcode: c.passcode, name: c.name, path: location.pathname, event: 'session' }).then(
         (ok) => {
-          if (!ok) recordFallback({ passcode: c.passcode, name: c.name, path: location.pathname, event: 'session' }).catch(() => {})
+          if (!ok) recordFallback({ passcode: c.passcode, name: c.name, userAgent: navigator.userAgent, path: location.pathname, event: 'session' }).catch(() => {})
         },
       )
     }

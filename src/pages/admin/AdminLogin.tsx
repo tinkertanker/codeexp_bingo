@@ -25,7 +25,7 @@ export default function AdminLogin() {
     // Record the login (best-effort, with IP via the HTTP endpoint; mutation fallback otherwise).
     void postAdminLoginHttp({ passcode: cleanPass, name: cleanName, path: '/admin', event: 'login' }).then(
       (ok) => {
-        if (!ok) recordFallback({ passcode: cleanPass, name: cleanName, path: '/admin', event: 'login' }).catch(() => {})
+        if (!ok) recordFallback({ passcode: cleanPass, name: cleanName, userAgent: navigator.userAgent, path: '/admin', event: 'login' }).catch(() => {})
       },
     )
     const from = (location.state as { from?: string } | null)?.from
